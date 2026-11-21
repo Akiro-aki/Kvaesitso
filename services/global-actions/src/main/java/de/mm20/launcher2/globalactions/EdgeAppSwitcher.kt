@@ -291,8 +291,9 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         handler.postDelayed({
             if (pendingSwitch == null) return@postDelayed
             if (systemRecentsVisible) {
-                // Normally gone in about 100 ms, then onWindowStateChanged runs the switch. In
-                // case it stays open, switch anyway, which also closes it.
+                // Gone after about 100 ms. Returning to the same app sends no window state
+                // change, so this usually runs on the timeout. In case the recents screen stays
+                // open, the switch closes it.
                 handler.postDelayed(runPendingSwitch, SystemRecentsTimeoutMs)
             } else {
                 runPendingSwitch.run()
@@ -429,9 +430,11 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         private const val SystemRecentsWaitMs = 120L
 
         /**
-         * Longest time to wait for the system's recents screen to close again.
+         * Time to wait for the system's recents screen to close again. On Honor it closes after
+         * about 100 ms, but returning to the same app sends no window state change, so this is
+         * usually how long the switch waits.
          */
-        private const val SystemRecentsTimeoutMs = 700L
+        private const val SystemRecentsTimeoutMs = 250L
 
         /**
          * Delay of a switch after the system's recents screen closed, for its transition to end.
