@@ -81,13 +81,17 @@ fun GestureSettingsScreen() {
         item {
             PreferenceCategory {
                 val swipeDown by viewModel.swipeDown.collectAsStateWithLifecycle(null)
+                val swipeDownRight by viewModel.swipeDownRight.collectAsStateWithLifecycle(null)
                 GuardedPreference(
                     locked = hasPermission == false && requiresAccessibilityService(swipeDown),
                     description = stringResource(R.string.missing_permission_accessibility_gesture_settings),
                     onUnlock = { viewModel.requestPermission(context as AppCompatActivity) },
                 ) {
                     GesturePreference(
-                        title = stringResource(R.string.preference_gesture_swipe_down),
+                        title = stringResource(
+                            if (swipeDownRight != null) R.string.preference_gesture_swipe_down_left
+                            else R.string.preference_gesture_swipe_down
+                        ),
                         icon = R.drawable.swipe_down_alt_24px,
                         value = swipeDown,
                         onValueChanged = viewModel::setSwipeDown,
@@ -95,6 +99,32 @@ fun GestureSettingsScreen() {
                         shortcutOptions = shortcutOptions,
                         widgetOptions = widgetOptions,
                     )
+                }
+
+                SwitchPreference(
+                    title = stringResource(R.string.preference_gesture_split_swipe_down),
+                    summary = stringResource(R.string.preference_gesture_split_swipe_down_summary),
+                    iconPadding = true,
+                    value = swipeDownRight != null,
+                    onValueChanged = viewModel::setSplitSwipeDown,
+                )
+
+                if (swipeDownRight != null) {
+                    GuardedPreference(
+                        locked = hasPermission == false && requiresAccessibilityService(swipeDownRight),
+                        description = stringResource(R.string.missing_permission_accessibility_gesture_settings),
+                        onUnlock = { viewModel.requestPermission(context as AppCompatActivity) },
+                    ) {
+                        GesturePreference(
+                            title = stringResource(R.string.preference_gesture_swipe_down_right),
+                            icon = R.drawable.swipe_down_alt_24px,
+                            value = swipeDownRight,
+                            onValueChanged = viewModel::setSwipeDownRight,
+                            options = options,
+                            shortcutOptions = shortcutOptions,
+                            widgetOptions = widgetOptions,
+                        )
+                    }
                 }
 
                 val swipeLeft by viewModel.swipeLeft.collectAsStateWithLifecycle(null)

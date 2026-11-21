@@ -90,6 +90,7 @@ class LauncherScaffoldVM : ViewModel(), KoinComponent {
             val swipeLeftAction = settings.swipeLeft
             val swipeRightAction = settings.swipeRight
             val swipeDownAction = settings.swipeDown
+            val swipeDownRightAction = settings.swipeDownRight
             val swipeUpAction = settings.swipeUp
             val longPressAction = settings.longPress
             val doubleTapAction = settings.doubleTap
@@ -98,6 +99,7 @@ class LauncherScaffoldVM : ViewModel(), KoinComponent {
             val swipeLeftAppKey = (swipeLeftAction as? GestureAction.Launch)?.key
             val swipeRightAppKey = (swipeRightAction as? GestureAction.Launch)?.key
             val swipeDownAppKey = (swipeDownAction as? GestureAction.Launch)?.key
+            val swipeDownRightAppKey = (swipeDownRightAction as? GestureAction.Launch)?.key
             val swipeUpAppKey = (swipeUpAction as? GestureAction.Launch)?.key
             val longPressAppKey = (longPressAction as? GestureAction.Launch)?.key
             val doubleTapAppKey = (doubleTapAction as? GestureAction.Launch)?.key
@@ -106,6 +108,7 @@ class LauncherScaffoldVM : ViewModel(), KoinComponent {
                 swipeLeftAppKey,
                 swipeRightAppKey,
                 swipeDownAppKey,
+                swipeDownRightAppKey,
                 swipeUpAppKey,
                 longPressAppKey,
                 doubleTapAppKey,
@@ -116,6 +119,7 @@ class LauncherScaffoldVM : ViewModel(), KoinComponent {
                 swipeLeftAction = swipeLeftAction,
                 swipeRightAction = swipeRightAction,
                 swipeDownAction = swipeDownAction,
+                swipeDownRightAction = swipeDownRightAction,
                 swipeUpAction = swipeUpAction,
                 longPressAction = longPressAction,
                 doubleTapAction = doubleTapAction,
@@ -123,6 +127,7 @@ class LauncherScaffoldVM : ViewModel(), KoinComponent {
                 swipeLeftApp = apps.find { it.key == swipeLeftAppKey },
                 swipeRightApp = apps.find { it.key == swipeRightAppKey },
                 swipeDownApp = apps.find { it.key == swipeDownAppKey },
+                swipeDownRightApp = apps.find { it.key == swipeDownRightAppKey },
                 swipeUpApp = apps.find { it.key == swipeUpAppKey },
                 longPressApp = apps.find { it.key == longPressAppKey },
                 doubleTapApp = apps.find { it.key == doubleTapAppKey },
@@ -135,6 +140,10 @@ data class GestureState(
     val swipeLeftAction: GestureAction = GestureAction.NoAction,
     val swipeRightAction: GestureAction = GestureAction.NoAction,
     val swipeDownAction: GestureAction = GestureAction.NoAction,
+    /**
+     * Null if swipe down is not split into a left and right half.
+     */
+    val swipeDownRightAction: GestureAction? = null,
     val swipeUpAction: GestureAction = GestureAction.NoAction,
     val longPressAction: GestureAction = GestureAction.NoAction,
     val doubleTapAction: GestureAction = GestureAction.NoAction,
@@ -142,6 +151,7 @@ data class GestureState(
     val swipeLeftApp: SavableSearchable? = null,
     val swipeRightApp: SavableSearchable? = null,
     val swipeDownApp: SavableSearchable? = null,
+    val swipeDownRightApp: SavableSearchable? = null,
     val swipeUpApp: SavableSearchable? = null,
     val longPressApp: SavableSearchable? = null,
     val doubleTapApp: SavableSearchable? = null,

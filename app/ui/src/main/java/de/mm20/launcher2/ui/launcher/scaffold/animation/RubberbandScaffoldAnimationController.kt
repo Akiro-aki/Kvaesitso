@@ -34,6 +34,7 @@ internal class RubberbandScaffoldAnimationController(
         return when (direction) {
             Gesture.SwipeUp,
             Gesture.SwipeDown,
+            Gesture.SwipeDownRight,
             -> currentOffset.copy(
                 x = 0f,
                 y = (currentOffset.y + adjustedDelta.y).coerceIn(-threshold, threshold),

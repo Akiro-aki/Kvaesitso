@@ -212,10 +212,26 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         val dx = x - downX
         val dy = y - downY
         val minSwipeDistance = MinSwipeDistanceDp * density
+        val isHorizontal = abs(dx) > abs(dy) * HorizontalSwipeRatio
+        Log.d(
+            "EdgeAppSwitcher",
+            "Gesture end: dx=$dx dy=$dy cancelled=$cancelled foreground=$foregroundPackage " +
+                    "recents=${recentPackages.take(5)}"
+        )
 
         when {
-            abs(dx) >= minSwipeDistance && abs(dx) > abs(dy) * HorizontalSwipeRatio -> {
+            abs(dx) >= minSwipeDistance && isHorizontal -> {
                 switchApp(towardsOlder = dx > 0)
+            }
+
+            // With gesture navigation, the system takes over the touch as soon as it has moved past
+            // its touch slop, long before it covers the minimum swipe distance, so a cancelled
+            // touch has only moved a few pixels. On the systems this is for, the system then fails
+            // to switch apps itself (the screen flickers), so a clearly sideways start is enough.
+            // The switch waits for the system's failed transition to finish, which would otherwise
+            // swallow it.
+            cancelled && abs(dx) >= touchSlop && isHorizontal -> {
+                handler.postDelayed({ switchApp(towardsOlder = dx > 0) }, CancelledSwitchDelayMs)
             }
 
             cancelled -> {}
@@ -280,6 +296,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
             if (towardsOlder) R.anim.edge_switch_enter_from_left else R.anim.edge_switch_enter_from_right,
             if (towardsOlder) R.anim.edge_switch_exit_to_right else R.anim.edge_switch_exit_to_left,
         )
+        Log.d("EdgeAppSwitcher", "Switching to ${packageName ?: "home"}")
         return try {
             service.startActivity(intent, options.toBundle())
             true
@@ -352,6 +369,12 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
         private const val MinSwipeDistanceDp = 40f
         private const val HorizontalSwipeRatio = 1.5f
+
+        /**
+         * Delay of a switch after the system took over the touch, for the system's own (failed)
+         * transition to end first.
+         */
+        private const val CancelledSwitchDelayMs = 250L
 
         private const val DefaultGestureAreaHeightDp = 24f
         private const val MinGestureAreaHeightDp = 16f

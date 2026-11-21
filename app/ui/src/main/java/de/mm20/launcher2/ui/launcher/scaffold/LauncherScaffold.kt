@@ -19,6 +19,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.draggable2D
@@ -82,6 +84,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -157,6 +160,15 @@ internal data class ScaffoldConfiguration(
     val searchComponent: SearchComponent,
     val swipeUp: ScaffoldGesture? = null,
     val swipeDown: ScaffoldGesture? = null,
+    /**
+     * Swipe down that starts on the right half of the screen. Only used if [splitSwipeDown].
+     */
+    val swipeDownRight: ScaffoldGesture? = null,
+    /**
+     * If true, swiping down on the right half of the screen triggers [swipeDownRight] instead of
+     * [swipeDown].
+     */
+    val splitSwipeDown: Boolean = false,
     val swipeLeft: ScaffoldGesture? = null,
     val swipeRight: ScaffoldGesture? = null,
     val doubleTap: ScaffoldGesture? = null,
@@ -215,6 +227,7 @@ internal data class ScaffoldConfiguration(
                 listOfNotNull(
                     swipeUp,
                     swipeDown,
+                    swipeDownRight,
                     swipeLeft,
                     swipeRight,
                     doubleTap,
@@ -228,6 +241,7 @@ private operator fun ScaffoldConfiguration.get(gesture: Gesture): ScaffoldGestur
     return when (gesture) {
         Gesture.SwipeUp -> swipeUp
         Gesture.SwipeDown -> swipeDown
+        Gesture.SwipeDownRight -> swipeDownRight
         Gesture.SwipeLeft -> swipeLeft
         Gesture.SwipeRight -> swipeRight
         Gesture.DoubleTap -> doubleTap
@@ -240,6 +254,10 @@ private operator fun ScaffoldConfiguration.get(gesture: Gesture): ScaffoldGestur
 enum class Gesture(val orientation: Orientation?) {
     SwipeUp(Orientation.Vertical),
     SwipeDown(Orientation.Vertical),
+    /**
+     * Swipe down that started on the right half of the screen, while swipe down is split.
+     */
+    SwipeDownRight(Orientation.Vertical),
     SwipeLeft(Orientation.Horizontal),
     SwipeRight(Orientation.Horizontal),
     DoubleTap(null),
@@ -525,13 +543,31 @@ internal class LauncherScaffoldState(
         }
     }
 
+    /**
+     * X position (in px) where the current touch went down, used to tell which half of the screen
+     * a swipe down started on. NaN if unknown.
+     */
+    var touchDownX: Float = Float.NaN
+
+    /**
+     * The swipe down gesture for the current touch: [Gesture.SwipeDownRight] if swipe down is
+     * split and the touch started on the right half of the screen, else [Gesture.SwipeDown].
+     */
+    private fun swipeDownGesture(): Gesture {
+        return if (config.splitSwipeDown && !touchDownX.isNaN() && touchDownX > size.width / 2f) {
+            Gesture.SwipeDownRight
+        } else {
+            Gesture.SwipeDown
+        }
+    }
+
     private fun getSwipeDirection(config: ScaffoldConfiguration, offset: Offset): Gesture? {
         when {
             (offset.x >= 0 && offset.y >= 0) -> {
                 return if (offset.x > offset.y && config.swipeRight != null) {
                     Gesture.SwipeRight
-                } else if (offset.x < offset.y && config.swipeDown != null && isAtTop) {
-                    Gesture.SwipeDown
+                } else if (offset.x < offset.y && config[swipeDownGesture()] != null && isAtTop) {
+                    swipeDownGesture()
                 } else {
                     null
                 }
@@ -560,8 +596,8 @@ internal class LauncherScaffoldState(
             (offset.x < 0 && offset.y >= 0) -> {
                 return if (offset.x < -offset.y && config.swipeLeft != null) {
                     Gesture.SwipeLeft
-                } else if (offset.x > -offset.y && config.swipeDown != null && isAtTop) {
-                    Gesture.SwipeDown
+                } else if (offset.x > -offset.y && config[swipeDownGesture()] != null && isAtTop) {
+                    swipeDownGesture()
                 } else {
                     null
                 }
@@ -709,7 +745,7 @@ internal class LauncherScaffoldState(
                 }
                 val y = when (gesture) {
                     Gesture.SwipeUp -> -1f
-                    Gesture.SwipeDown -> 1f
+                    Gesture.SwipeDown, Gesture.SwipeDownRight -> 1f
                     else -> 0f
                 }
 
@@ -758,7 +794,7 @@ internal class LauncherScaffoldState(
                     Gesture.SwipeLeft -> Offset(-size.width, 0f)
                     Gesture.SwipeRight -> Offset(size.width, 0f)
                     Gesture.SwipeUp -> Offset(0f, -size.height)
-                    Gesture.SwipeDown -> Offset(0f, size.height)
+                    Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset(0f, size.height)
                     else -> Offset.Zero
                 }
             }
@@ -864,7 +900,7 @@ internal class LauncherScaffoldState(
         // If there is any swipe gesture that is a SearchComponent, this takes precedence over the tap
         // This allows to close the search with a reversed swipe
         val gestures =
-            listOf(Gesture.SwipeDown, Gesture.SwipeUp, Gesture.SwipeLeft, Gesture.SwipeRight)
+            listOf(Gesture.SwipeDown, Gesture.SwipeDownRight, Gesture.SwipeUp, Gesture.SwipeLeft, Gesture.SwipeRight)
         val gesture = gestures.find { config[it]?.component is SearchComponent }
 
         if (gesture == null) {
@@ -887,7 +923,7 @@ internal class LauncherScaffoldState(
                     Gesture.SwipeLeft -> Offset(-rubberbandThreshold, 0f)
                     Gesture.SwipeRight -> Offset(rubberbandThreshold, 0f)
                     Gesture.SwipeUp -> Offset(0f, -rubberbandThreshold)
-                    Gesture.SwipeDown -> Offset(0f, rubberbandThreshold)
+                    Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset(0f, rubberbandThreshold)
                     else -> Offset.Zero
                 }
 
@@ -899,7 +935,7 @@ internal class LauncherScaffoldState(
                     Gesture.SwipeLeft -> Offset(-size.width, 0f)
                     Gesture.SwipeRight -> Offset(size.width, 0f)
                     Gesture.SwipeUp -> Offset(0f, -size.height)
-                    Gesture.SwipeDown -> Offset(0f, size.height)
+                    Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset(0f, size.height)
                     else -> Offset.Zero
                 }
                 animateOffset3DTo(currentOffset3D.copy(x = targetOffset.x, y = targetOffset.y))
@@ -1246,6 +1282,17 @@ internal fun LauncherScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
+                .pointerInput(state) {
+                    // Only observes where each touch starts, without consuming it, so that a swipe
+                    // down can be told apart by the half of the screen it started on.
+                    awaitEachGesture {
+                        val down = awaitFirstDown(
+                            requireUnconsumed = false,
+                            pass = PointerEventPass.Initial,
+                        )
+                        state.touchDownX = down.position.x
+                    }
+                }
                 .nestedScroll(nestedScrollConnection)
                 .draggable2D(
                     state = rememberDraggable2DState {
@@ -1496,6 +1543,7 @@ private fun SecondaryPage(
         setOfNotNull(
             config.swipeUp?.component,
             config.swipeDown?.component,
+            config.swipeDownRight?.component,
             config.swipeLeft?.component,
             config.swipeRight?.component,
             config.doubleTap?.component,
@@ -1641,7 +1689,7 @@ private fun Modifier.secondaryPageAnimation(
         .absoluteOffset {
             when (state.currentGesture) {
                 Gesture.SwipeUp -> IntOffset(0, state.size.height.toInt())
-                Gesture.SwipeDown -> IntOffset(0, -state.size.height.toInt())
+                Gesture.SwipeDown, Gesture.SwipeDownRight -> IntOffset(0, -state.size.height.toInt())
                 Gesture.SwipeLeft -> IntOffset(state.size.width.toInt(), 0)
                 Gesture.SwipeRight -> IntOffset(-state.size.width.toInt(), 0)
                 else -> IntOffset(state.size.width.toInt(), 0)
@@ -1747,7 +1795,7 @@ private fun WallpaperScrollEffect(
                 Gesture.SwipeLeft -> Offset(0.5f + 0.5f * progress, 0.5f)
                 Gesture.SwipeRight -> Offset(0.5f - 0.5f * progress, 0.5f)
                 Gesture.SwipeUp -> Offset(0.5f, 0.5f + 0.5f * progress)
-                Gesture.SwipeDown -> Offset(0.5f, 0.5f - 0.5f * progress)
+                Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset(0.5f, 0.5f - 0.5f * progress)
                 else -> Offset(0.5f, 0.5f)
             }
         }

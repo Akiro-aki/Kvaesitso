@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.map
 
 data class GestureSettingsData(
     val swipeDown: GestureAction,
+    val swipeDownRight: GestureAction?,
     val swipeLeft: GestureAction,
     val swipeRight: GestureAction,
     val swipeUp: GestureAction,
@@ -22,6 +23,7 @@ class GestureSettings internal constructor(
     dataStore.data.map {
         GestureSettingsData(
             swipeDown = it.gesturesSwipeDown,
+            swipeDownRight = it.gesturesSwipeDownRight,
             swipeLeft = it.gesturesSwipeLeft,
             swipeRight = it.gesturesSwipeRight,
             swipeUp = it.gesturesSwipeUp,
@@ -32,6 +34,12 @@ class GestureSettings internal constructor(
     }.distinctUntilChanged()
 ) {
     val swipeDown: Flow<GestureAction> = dataStore.data.map { it.gesturesSwipeDown }
+        .distinctUntilChanged()
+
+    /**
+     * Action for swiping down on the right half of the screen, or null if swipe down is not split.
+     */
+    val swipeDownRight: Flow<GestureAction?> = dataStore.data.map { it.gesturesSwipeDownRight }
         .distinctUntilChanged()
 
     val swipeLeft: Flow<GestureAction> = dataStore.data.map { it.gesturesSwipeLeft }
@@ -69,6 +77,15 @@ class GestureSettings internal constructor(
     fun setSwipeDown(action: GestureAction) {
         dataStore.update {
             it.copy(gesturesSwipeDown = action)
+        }
+    }
+
+    /**
+     * Sets the action for swiping down on the right half of the screen. Null turns the split off.
+     */
+    fun setSwipeDownRight(action: GestureAction?) {
+        dataStore.update {
+            it.copy(gesturesSwipeDownRight = action)
         }
     }
 

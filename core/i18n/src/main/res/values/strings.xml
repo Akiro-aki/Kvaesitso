@@ -820,6 +820,10 @@
     <string name="preference_screen_gestures">Gestures</string>
     <string name="preference_screen_gestures_summary">Gestures and gesture actions</string>
     <string name="preference_gesture_swipe_down">Swipe down</string>
+    <string name="preference_gesture_swipe_down_left">Swipe down on the left half</string>
+    <string name="preference_gesture_swipe_down_right">Swipe down on the right half</string>
+    <string name="preference_gesture_split_swipe_down">Split swipe down</string>
+    <string name="preference_gesture_split_swipe_down_summary">Different actions for swiping down on the left and right half of the screen, like notifications on the left and quick settings on the right</string>
     <string name="preference_gesture_swipe_left">Swipe left</string>
     <string name="preference_gesture_swipe_right">Swipe right</string>
     <string name="preference_gesture_swipe_up">Swipe up</string>

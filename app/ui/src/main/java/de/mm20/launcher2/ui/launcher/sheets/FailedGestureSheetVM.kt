@@ -23,6 +23,7 @@ class FailedGestureSheetVM : ViewModel(), KoinComponent {
             Gesture.DoubleTap -> gestureSettings.setDoubleTap(GestureAction.NoAction)
             Gesture.LongPress -> gestureSettings.setLongPress(GestureAction.NoAction)
             Gesture.SwipeDown -> gestureSettings.setSwipeDown(GestureAction.NoAction)
+            Gesture.SwipeDownRight -> gestureSettings.setSwipeDownRight(GestureAction.NoAction)
             Gesture.SwipeLeft -> gestureSettings.setSwipeLeft(GestureAction.NoAction)
             Gesture.SwipeRight -> gestureSettings.setSwipeRight(GestureAction.NoAction)
             //Gesture.HomeButton -> gestureSettings.setHomeButton(GestureAction.NoAction)

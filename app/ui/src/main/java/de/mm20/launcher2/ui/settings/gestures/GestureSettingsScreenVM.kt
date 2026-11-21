@@ -39,6 +39,8 @@ internal class GestureSettingsScreenVM : ViewModel(), KoinComponent {
 
     val swipeDown = gestureSettings.swipeDown
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    val swipeDownRight = gestureSettings.swipeDownRight
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     val swipeLeft = gestureSettings.swipeLeft
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     val swipeRight = gestureSettings.swipeRight
@@ -61,6 +63,19 @@ internal class GestureSettingsScreenVM : ViewModel(), KoinComponent {
     fun setSwipeDown(action: GestureAction, searchable: SavableSearchable?) {
         saveShortcut(searchable)
         gestureSettings.setSwipeDown(action)
+    }
+
+    fun setSwipeDownRight(action: GestureAction, searchable: SavableSearchable?) {
+        saveShortcut(searchable)
+        gestureSettings.setSwipeDownRight(action)
+    }
+
+    /**
+     * Splits swipe down into a left and right half. The right half starts out opening the quick
+     * settings, the left half keeps the current swipe down action.
+     */
+    fun setSplitSwipeDown(split: Boolean) {
+        gestureSettings.setSwipeDownRight(if (split) GestureAction.QuickSettings else null)
     }
 
     fun setSwipeLeft(action: GestureAction, searchable: SavableSearchable?) {
@@ -103,6 +118,7 @@ internal class GestureSettingsScreenVM : ViewModel(), KoinComponent {
             (it.swipeLeft as? GestureAction.Launch)?.key,
             (it.swipeRight as? GestureAction.Launch)?.key,
             (it.swipeDown as? GestureAction.Launch)?.key,
+            (it.swipeDownRight as? GestureAction.Launch)?.key,
             (it.doubleTap as? GestureAction.Launch)?.key,
             (it.homeButton as? GestureAction.Launch)?.key,
             (it.longPress as? GestureAction.Launch)?.key,

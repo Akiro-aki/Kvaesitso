@@ -18,7 +18,7 @@ internal class PushScaffoldAnimationController(
             Gesture.SwipeRight -> Offset3D(x = -size.width)
             Gesture.SwipeLeft -> Offset3D(x = size.width)
             Gesture.SwipeUp -> Offset3D(y = -size.height)
-            Gesture.SwipeDown -> Offset3D(y = size.height)
+            Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset3D(y = size.height)
             else -> Offset3D.Zero
         }
     }
@@ -38,7 +38,7 @@ internal class PushScaffoldAnimationController(
                 y = (currentOffset.y + delta.y).coerceIn(-size.height, 0f),
             )
 
-            Gesture.SwipeDown -> currentOffset.copy(
+            Gesture.SwipeDown, Gesture.SwipeDownRight -> currentOffset.copy(
                 x = 0f,
                 y = (currentOffset.y + delta.y).coerceIn(0f, size.height),
             )
@@ -79,7 +79,7 @@ internal class PushScaffoldAnimationController(
     ): ScaffoldPage {
         val lowerPage = when (direction) {
             Gesture.SwipeUp -> -size.height
-            Gesture.SwipeDown -> 0f
+            Gesture.SwipeDown, Gesture.SwipeDownRight -> 0f
             Gesture.SwipeLeft -> -size.width
             Gesture.SwipeRight -> 0f
             else -> return currentPage
@@ -119,7 +119,7 @@ internal class PushScaffoldAnimationController(
             Gesture.SwipeLeft -> Offset3D(x = -size.width)
             Gesture.SwipeRight -> Offset3D(x = size.width)
             Gesture.SwipeUp -> Offset3D(y = -size.height)
-            Gesture.SwipeDown -> Offset3D(y = size.height)
+            Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset3D(y = size.height)
             else -> Offset3D.Zero
         }
     }

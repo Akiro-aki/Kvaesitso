@@ -50,6 +50,7 @@ fun FailedGestureSheet(
             Gesture.DoubleTap -> R.string.preference_gesture_double_tap
             Gesture.LongPress -> R.string.preference_gesture_long_press
             Gesture.SwipeDown -> R.string.preference_gesture_swipe_down
+            Gesture.SwipeDownRight -> R.string.preference_gesture_swipe_down_right
             Gesture.SwipeLeft -> R.string.preference_gesture_swipe_left
             Gesture.SwipeRight -> R.string.preference_gesture_swipe_right
             Gesture.SwipeUp -> R.string.preference_gesture_swipe_up

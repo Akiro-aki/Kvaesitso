@@ -154,6 +154,11 @@ data class LauncherSettingsData internal constructor(
     val widgetScreenCount: Int = 1,
 
     val gesturesSwipeDown: GestureAction = GestureAction.Search,
+    /**
+     * Action for swiping down on the right half of the home screen. Null if swipe down is not
+     * split, so [gesturesSwipeDown] applies to the whole screen.
+     */
+    val gesturesSwipeDownRight: GestureAction? = null,
     val gesturesSwipeLeft: GestureAction = GestureAction.NoAction,
     val gesturesSwipeRight: GestureAction = GestureAction.NoAction,
     val gesturesSwipeUp: GestureAction = GestureAction.Widgets(),

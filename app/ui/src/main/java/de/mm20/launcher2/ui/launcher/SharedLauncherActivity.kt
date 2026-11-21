@@ -285,7 +285,7 @@ abstract class SharedLauncherActivity(
                                             is GestureAction.Search -> ScaffoldGesture(
                                                 component = searchComponent,
                                                 animation = when (gesture) {
-                                                    Gesture.SwipeDown -> ScaffoldAnimation.Rubberband
+                                                    Gesture.SwipeDown, Gesture.SwipeDownRight -> ScaffoldAnimation.Rubberband
                                                     Gesture.LongPress -> ScaffoldAnimation.ZoomIn
                                                     Gesture.DoubleTap -> ScaffoldAnimation.ZoomIn
                                                     else -> ScaffoldAnimation.Push
@@ -370,6 +370,12 @@ abstract class SharedLauncherActivity(
                                             gestures.swipeDownApp,
                                             Gesture.SwipeDown,
                                         ),
+                                        swipeDownRight = getScaffoldGesture(
+                                            gestures.swipeDownRightAction,
+                                            gestures.swipeDownRightApp,
+                                            Gesture.SwipeDownRight,
+                                        ),
+                                        splitSwipeDown = gestures.swipeDownRightAction != null,
                                         swipeLeft = getScaffoldGesture(
                                             gestures.swipeLeftAction,
                                             gestures.swipeLeftApp,
