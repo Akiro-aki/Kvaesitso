@@ -153,6 +153,7 @@ abstract class SharedLauncherActivity(
                         val widgetsOnHomeScreen by viewModel.widgetsOnHomeScreen.collectAsState()
                         val wallpaperBlur by viewModel.wallpaperBlur.collectAsState()
                         val wallpaperBlurRadius by viewModel.wallpaperBlurRadius.collectAsState()
+                        val scrollWallpaper by viewModel.scrollWallpaper.collectAsState()
 
                         val fixedRotation by viewModel.fixedRotation.collectAsState()
 
@@ -243,6 +244,7 @@ abstract class SharedLauncherActivity(
                                 searchBarAutofocus,
                                 wallpaperBlur,
                                 wallpaperBlurRadius,
+                                scrollWallpaper,
                             ) {
                                 if (mode == LauncherActivityMode.Assistant) {
                                     val searchComponent = SearchComponent(
@@ -403,6 +405,7 @@ abstract class SharedLauncherActivity(
                                         showNavBar = !hideNav,
                                         darkSearchBar = darkSearchBar,
                                         wallpaperBlurRadius = if (wallpaperBlur) wallpaperBlurRadius.dp else 0.dp,
+                                        scrollWallpaper = scrollWallpaper,
                                     )
 
                                     if (config.isUseless()) config.copy(

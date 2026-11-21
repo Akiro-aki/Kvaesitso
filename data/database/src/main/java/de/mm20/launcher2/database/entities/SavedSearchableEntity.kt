@@ -12,7 +12,21 @@ data class SavedSearchableEntity(
         @ColumnInfo(defaultValue = "0") val launchCount: Int,
         @ColumnInfo(defaultValue = "0") val pinPosition: Int,
         @ColumnInfo(name="hidden", defaultValue = "0") val visibility: Int,
-        @ColumnInfo(defaultValue = "0.0") val weight: Double
+        @ColumnInfo(defaultValue = "0.0") val weight: Double,
+        /**
+         * Unix timestamp (ms) of the last launch, 0 if unknown
+         */
+        @ColumnInfo(defaultValue = "0") val lastLaunch: Long = 0L,
+)
+
+/**
+ * Launch statistics of a searchable, used to sort the app list.
+ */
+data class SearchableUsageEntity(
+        val key: String,
+        val launchCount: Int,
+        val weight: Double,
+        val lastLaunch: Long,
 )
 
 data class SavedSearchableUpdatePinEntity(

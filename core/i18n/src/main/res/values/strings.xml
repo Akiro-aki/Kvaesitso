@@ -543,6 +543,8 @@
     <string name="preference_dim_wallpaper_summary">In dark themes, darken wallpaper</string>
     <string name="preference_blur_wallpaper">Blur wallpaper</string>
     <string name="preference_blur_wallpaper_summary">Use a blur effect on the wallpaper</string>
+    <string name="preference_scroll_wallpaper">Scroll wallpaper</string>
+    <string name="preference_scroll_wallpaper_summary">Pan the wallpaper when swiping between pages. Works best with wallpapers wider or taller than the screen</string>
     <string name="preference_blur_wallpaper_unsupported">Not supported on this device</string>
     <string name="preference_blur_wallpaper_radius">Blur radius</string>
     <string name="preference_wallpaper_summary">Choose a wallpaper</string>
@@ -632,6 +634,12 @@
     <string name="preference_search_apps_summary">Show all apps when the search field is empty</string>
     <string name="preference_search_apps_show_details">Show app information</string>
     <string name="preference_search_apps_show_details_summary">Display version and package name of an app in its context menu</string>
+    <string name="preference_apps_sort_order">Sort order</string>
+    <string name="preference_apps_sort_order_alphabetical">Alphabetical</string>
+    <string name="preference_apps_sort_order_recently_used">Recently used (new apps first)</string>
+    <string name="preference_apps_sort_order_most_used">Most used</string>
+    <string name="preference_apps_sort_order_adaptive">Adaptive (recent and frequent)</string>
+    <string name="preference_apps_sort_order_recently_installed">Recently installed</string>
     <string name="preference_search_files">Files</string>
     <string name="preference_search_files_summary">Search local files and cloud files</string>
     <string name="preference_search_contacts">Contacts</string>

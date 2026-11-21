@@ -9,6 +9,7 @@ import androidx.room3.Transaction
 import androidx.room3.Update
 import androidx.room3.Upsert
 import de.mm20.launcher2.database.entities.SavedSearchableEntity
+import de.mm20.launcher2.database.entities.SearchableUsageEntity
 import de.mm20.launcher2.database.entities.SavedSearchableUpdateContentEntity
 import de.mm20.launcher2.database.entities.SavedSearchableUpdatePinEntity
 import kotlinx.coroutines.flow.Flow
@@ -178,7 +179,14 @@ interface SearchableDao {
                 )
             )
         }
+        setLastLaunch(item.key, System.currentTimeMillis())
     }
+
+    @Query("UPDATE Searchable SET lastLaunch = :timestamp WHERE `key` = :key")
+    fun setLastLaunch(key: String, timestamp: Long)
+
+    @Query("SELECT `key`, `launchCount`, `weight`, `lastLaunch` FROM Searchable WHERE `type` = :type")
+    fun getUsageStats(type: String): Flow<List<SearchableUsageEntity>>
 
     @Query("UPDATE Searchable SET launchCount = launchCount + 1 WHERE `key` = :key")
     fun incrementLaunchCount(key: String)

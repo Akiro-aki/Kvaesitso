@@ -1,6 +1,9 @@
 package de.mm20.launcher2.ui.launcher.scaffold
 
 import android.app.WallpaperManager
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.runtime.snapshotFlow
+import android.view.View
 import android.view.animation.PathInterpolator
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.PredictiveBackHandler
@@ -176,6 +179,11 @@ internal data class ScaffoldConfiguration(
      * Wallpaper blur radius. 0 to disable.
      */
     val wallpaperBlurRadius: Dp = 32.dp,
+    /**
+     * Pan the wallpaper (via wallpaper offsets) when moving between the home page and secondary
+     * pages.
+     */
+    val scrollWallpaper: Boolean = false,
     /**
      * Show the navigation bar
      */
@@ -1150,6 +1158,13 @@ internal fun LauncherScaffold(
             WallpaperBlur { (maxRadius * state.currentProgress).toInt() }
         }
 
+        WallpaperScrollEffect(
+            enabled = config.scrollWallpaper,
+            wallpaperManager = wallpaperManager,
+            view = view,
+            state = state,
+        )
+
         if (!config.finishOnBack || state.currentProgress > 0) {
             PredictiveBackHandler {
                 try {
@@ -1703,4 +1718,43 @@ private fun Modifier.searchBarAnimation(
 
     return this then (component?.searchBarModifier(state, modifier)
         ?: modifier) then Modifier.padding(insets)
+}
+
+/**
+ * Pans the wallpaper like a classic paged launcher: the home page sits at the center of the
+ * wallpaper, pages that are opened by swiping left / right / up / down move the wallpaper towards
+ * the corresponding edge, following the gesture progress.
+ */
+@Composable
+private fun WallpaperScrollEffect(
+    enabled: Boolean,
+    wallpaperManager: WallpaperManager,
+    view: View,
+    state: LauncherScaffoldState,
+) {
+    LaunchedEffect(enabled, wallpaperManager, view) {
+        // Three virtual pages per axis: 0, 0.5, 1
+        wallpaperManager.setWallpaperOffsetSteps(0.5f, 0.5f)
+        if (!enabled) {
+            view.windowToken?.let {
+                wallpaperManager.setWallpaperOffsets(it, 0.5f, 0.5f)
+            }
+            return@LaunchedEffect
+        }
+        snapshotFlow {
+            val progress = state.currentProgress.coerceIn(0f, 1f)
+            when (state.currentGesture) {
+                Gesture.SwipeLeft -> Offset(0.5f + 0.5f * progress, 0.5f)
+                Gesture.SwipeRight -> Offset(0.5f - 0.5f * progress, 0.5f)
+                Gesture.SwipeUp -> Offset(0.5f, 0.5f + 0.5f * progress)
+                Gesture.SwipeDown -> Offset(0.5f, 0.5f - 0.5f * progress)
+                else -> Offset(0.5f, 0.5f)
+            }
+        }
+            .distinctUntilChanged()
+            .collect { offset ->
+                val token = view.windowToken ?: return@collect
+                wallpaperManager.setWallpaperOffsets(token, offset.x, offset.y)
+            }
+    }
 }

@@ -8,6 +8,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import de.mm20.launcher2.ui.R
+import de.mm20.launcher2.preferences.AppsSortOrder
+import de.mm20.launcher2.ui.component.preferences.ListPreference
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
 import de.mm20.launcher2.ui.component.preferences.SwitchPreference
@@ -25,6 +27,7 @@ fun AppSearchSettingsScreen() {
     val showAppDetails by viewModel.showAppDetails.collectAsStateWithLifecycle()
     val showList by viewModel.showList.collectAsStateWithLifecycle()
     val showListIcons by viewModel.showListIcons.collectAsStateWithLifecycle()
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
 
     PreferenceScreen(
         title = stringResource(R.string.preference_search_apps)
@@ -40,6 +43,22 @@ fun AppSearchSettingsScreen() {
                         viewModel.setAllApps(it)
                     }
                 )
+                AnimatedVisibility(allApps == true && sortOrder != null) {
+                    ListPreference(
+                        title = stringResource(R.string.preference_apps_sort_order),
+                        items = listOf(
+                            stringResource(R.string.preference_apps_sort_order_alphabetical) to AppsSortOrder.Alphabetical,
+                            stringResource(R.string.preference_apps_sort_order_recently_used) to AppsSortOrder.RecentlyUsed,
+                            stringResource(R.string.preference_apps_sort_order_most_used) to AppsSortOrder.MostUsed,
+                            stringResource(R.string.preference_apps_sort_order_adaptive) to AppsSortOrder.Adaptive,
+                            stringResource(R.string.preference_apps_sort_order_recently_installed) to AppsSortOrder.RecentlyInstalled,
+                        ),
+                        value = sortOrder ?: AppsSortOrder.Alphabetical,
+                        onValueChanged = {
+                            viewModel.setSortOrder(it)
+                        }
+                    )
+                }
                 SwitchPreference(
                     title = stringResource(R.string.preference_search_apps_show_details),
                     summary = stringResource(R.string.preference_search_apps_show_details_summary),

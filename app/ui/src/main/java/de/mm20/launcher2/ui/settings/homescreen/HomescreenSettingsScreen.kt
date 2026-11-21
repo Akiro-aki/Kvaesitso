@@ -80,6 +80,7 @@ fun HomescreenSettingsScreen() {
     val dimWallpaper by viewModel.dimWallpaper.collectAsStateWithLifecycle()
     val blurWallpaper by viewModel.blurWallpaper.collectAsStateWithLifecycle()
     val blurWallpaperRadius by viewModel.blurWallpaperRadius.collectAsStateWithLifecycle()
+    val scrollWallpaper by viewModel.scrollWallpaper.collectAsStateWithLifecycle()
     val lightNavBar by viewModel.navBarIcons.collectAsStateWithLifecycle(null)
     val hideStatusBar by viewModel.hideStatusBar.collectAsStateWithLifecycle(null)
     val hideNavBar by viewModel.hideNavBar.collectAsStateWithLifecycle(null)
@@ -196,6 +197,14 @@ fun HomescreenSettingsScreen() {
                     value = dimWallpaper,
                     onValueChanged = {
                         viewModel.setDimWallpaper(it)
+                    }
+                )
+                SwitchPreference(
+                    title = stringResource(R.string.preference_scroll_wallpaper),
+                    summary = stringResource(R.string.preference_scroll_wallpaper_summary),
+                    value = scrollWallpaper,
+                    onValueChanged = {
+                        viewModel.setScrollWallpaper(it)
                     }
                 )
                 val isBlurSupported = remember { viewModel.isBlurAvailable(context) }

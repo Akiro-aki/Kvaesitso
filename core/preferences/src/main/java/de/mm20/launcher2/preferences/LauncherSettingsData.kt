@@ -31,6 +31,7 @@ data class LauncherSettingsData internal constructor(
     val wallpaperDim: Boolean = false,
     val wallpaperBlur: Boolean = true,
     val wallpaperBlurRadius: Int = 32,
+    val wallpaperScroll: Boolean = false,
 
     val mediaAllowList: Set<String> = emptySet(),
     val mediaDenyList: Set<String> = emptySet(),
@@ -72,6 +73,7 @@ data class LauncherSettingsData internal constructor(
     val favoritesCompactTags: Boolean = false,
 
     val searchAllApps: Boolean = true,
+    val appsSortOrder: AppsSortOrder = AppsSortOrder.Alphabetical,
     val appsShowDetails: Boolean = true,
 
     val fileSearchProviders: Set<String> = setOf("local"),
@@ -423,6 +425,35 @@ sealed interface GestureAction {
     data object LauncherSettings : GestureAction
 }
 
+
+@Serializable
+enum class AppsSortOrder {
+    /**
+     * Sorted by label (default)
+     */
+    Alphabetical,
+
+    /**
+     * Most recently launched first. Newly installed apps count as launched at their install
+     * time, so they surface at the top until other apps are used (like KISS launcher).
+     */
+    RecentlyUsed,
+
+    /**
+     * Highest launch count first
+     */
+    MostUsed,
+
+    /**
+     * Highest adaptive ranking weight first (a mix of recency and frequency)
+     */
+    Adaptive,
+
+    /**
+     * Most recently installed first
+     */
+    RecentlyInstalled,
+}
 
 @Serializable
 enum class WeightFactor {

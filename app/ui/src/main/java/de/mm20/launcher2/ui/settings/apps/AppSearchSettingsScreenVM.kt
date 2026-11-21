@@ -2,6 +2,7 @@ package de.mm20.launcher2.ui.settings.apps
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import de.mm20.launcher2.preferences.AppsSortOrder
 import de.mm20.launcher2.preferences.ui.SearchUiSettings
 import de.mm20.launcher2.preferences.ui.UiSettings
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +20,13 @@ class AppSearchSettingsScreenVM: ViewModel(), KoinComponent {
 
     val showAppDetails = searchUiSettings.showAppDetails
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    val sortOrder = searchUiSettings.appsSortOrder
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    fun setSortOrder(sortOrder: AppsSortOrder) {
+        searchUiSettings.setAppsSortOrder(sortOrder)
+    }
 
     fun setAllApps(allApps: Boolean) {
         searchUiSettings.setAllApps(allApps)

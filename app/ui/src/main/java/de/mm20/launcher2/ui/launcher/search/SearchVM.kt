@@ -1,6 +1,12 @@
 package de.mm20.launcher2.ui.launcher.search
 
 import android.content.Context
+import de.mm20.launcher2.preferences.AppsSortOrder
+import de.mm20.launcher2.search.AllAppsResults
+import de.mm20.launcher2.searchable.UsageStats
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -55,6 +61,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SearchVM : ViewModel(), KoinComponent {
 
     private val favoritesService: FavoritesService by inject()
@@ -217,9 +224,24 @@ class SearchVM : ViewModel(), KoinComponent {
                 }
                 val allApps = searchService.getAllApps()
 
-                allApps
-                    .combine(hiddenItemKeys) { results, hiddenKeys -> results to hiddenKeys }
-                    .collectLatest { (results, hiddenKeys) ->
+                val sortOrder = searchUiSettings.appsSortOrder
+                val usageStats = sortOrder
+                    .map { it != AppsSortOrder.Alphabetical && it != AppsSortOrder.RecentlyInstalled }
+                    .distinctUntilChanged()
+                    .flatMapLatest { needsStats ->
+                        if (needsStats) searchableRepository.getUsageStats("app")
+                        else flowOf(emptyMap())
+                    }
+
+                combine(
+                    allApps,
+                    hiddenItemKeys,
+                    sortOrder,
+                    usageStats,
+                ) { results, hiddenKeys, order, stats ->
+                    AllAppsState(results, hiddenKeys, order, stats)
+                }
+                    .collectLatest { (results, hiddenKeys, order, stats) ->
                         val hiddenItems = mutableListOf<SavableSearchable>()
 
                         val (hiddenApps, apps) = results.standardProfileApps.partition {
@@ -245,9 +267,9 @@ class SearchVM : ViewModel(), KoinComponent {
                         previousResults = SearchResults(apps = apps)
 
                         searchActionResults.clear()
-                        appResults.updateItems(apps)
-                        workAppResults.updateItems(workApps)
-                        privateSpaceAppResults.updateItems(privateApps)
+                        appResults.updateItems(apps.sortedForAllApps(order, stats))
+                        workAppResults.updateItems(workApps.sortedForAllApps(order, stats))
+                        privateSpaceAppResults.updateItems(privateApps.sortedForAllApps(order, stats))
                         hiddenResults.updateItems(hiddenItems)
                     }
 
@@ -462,4 +484,33 @@ enum class SearchCategory {
     Website,
     Location,
     Shortcuts,
+}
+
+private data class AllAppsState(
+    val results: AllAppsResults,
+    val hiddenKeys: List<String>,
+    val order: AppsSortOrder,
+    val stats: Map<String, UsageStats>,
+)
+
+/**
+ * Sorts the all apps list. The input is expected to be sorted alphabetically already; all sorts
+ * are stable, so ties stay in alphabetical order.
+ */
+internal fun <T : Application> List<T>.sortedForAllApps(
+    order: AppsSortOrder,
+    stats: Map<String, UsageStats>,
+): List<T> {
+    return when (order) {
+        AppsSortOrder.Alphabetical -> this
+        // Like KISS launcher: an app that was installed after the last launch of any other app
+        // counts as more recent, so new apps show up at the top.
+        AppsSortOrder.RecentlyUsed -> sortedByDescending {
+            maxOf(stats[it.key]?.lastLaunch ?: 0L, it.firstInstallTime)
+        }
+
+        AppsSortOrder.MostUsed -> sortedByDescending { stats[it.key]?.launchCount ?: 0 }
+        AppsSortOrder.Adaptive -> sortedByDescending { stats[it.key]?.weight ?: 0.0 }
+        AppsSortOrder.RecentlyInstalled -> sortedByDescending { it.firstInstallTime }
+    }
 }

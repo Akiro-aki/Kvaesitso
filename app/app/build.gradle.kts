@@ -49,7 +49,12 @@ android {
 
     buildTypes {
         release {
-            applicationIdSuffix = ".release"
+            // Fork: own application ID so it installs next to the official Kvaesitso builds
+            applicationIdSuffix = ".fork"
+            versionNameSuffix = "-fork"
+            if (System.getenv("KEYSTORE_PASSWORD") != null) {
+                signingConfig = signingConfigs.getByName("gh-actions")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

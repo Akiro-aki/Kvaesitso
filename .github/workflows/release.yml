@@ -1,0 +1,72 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode keystore
+        id: keystore
+        env:
+          ENCODED_STRING: ${{ secrets.KEYSTORE }}
+        run: |
+          if [ -z "$ENCODED_STRING" ]; then
+            echo "No KEYSTORE secret set, the APK will be signed with a throwaway debug key."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p "${RUNNER_TEMP}/keystore"
+          echo "$ENCODED_STRING" | base64 -di > "${RUNNER_TEMP}/keystore/keystore.jks"
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Override version code based on date
+        run: echo "VERSION_CODE_OVERRIDE=$(date +%Y%m%d%H)" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        env:
+          KEYSTORE_PASSWORD: ${{ steps.keystore.outputs.signed == 'true' && secrets.KEYSTORE_PASSWORD || '' }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          # An empty KEYSTORE_PASSWORD must be unset, otherwise Gradle picks the release keystore
+          [ -z "$KEYSTORE_PASSWORD" ] && unset KEYSTORE_PASSWORD
+          ./gradlew --no-configuration-cache assembleDefaultRelease
+
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          cp app/app/build/outputs/apk/default/release/*.apk dist/kvaesitso-fork.apk
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kvaesitso-fork-apk
+          path: dist/kvaesitso-fork.apk
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/kvaesitso-fork.apk \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file .github/release-notes.md

@@ -75,6 +75,8 @@ class LauncherScaffoldVM : ViewModel(), KoinComponent {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), true)
     val wallpaperBlurRadius = uiSettings.wallpaperBlurRadius
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 32)
+    val scrollWallpaper = uiSettings.scrollWallpaper
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
 
 
     val fillClockHeight = uiSettings.clockFillScreen

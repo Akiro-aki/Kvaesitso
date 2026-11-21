@@ -137,6 +137,17 @@ class UiSettings internal constructor(
         }
     }
 
+    val scrollWallpaper
+        get() = launcherDataStore.data.map {
+            it.wallpaperScroll
+        }.distinctUntilChanged()
+
+    fun setScrollWallpaper(scrollWallpaper: Boolean) {
+        launcherDataStore.update {
+            it.copy(wallpaperScroll = scrollWallpaper)
+        }
+    }
+
     val colorScheme
         get() = launcherDataStore.data.map {
             it.uiColorScheme

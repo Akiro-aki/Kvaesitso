@@ -47,6 +47,9 @@ internal data class LauncherApp(
 
     override val label: String = launcherActivityInfo.label.toString()
 
+    override val firstInstallTime: Long
+        get() = launcherActivityInfo.firstInstallTime
+
     /**
      * Cached result of the normalized label.
      * First string is the normalizer ID

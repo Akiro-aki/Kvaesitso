@@ -59,6 +59,13 @@ class HomescreenSettingsScreenVM(
         uiSettings.setWallpaperBlurRadius(blurWallpaperRadius)
     }
 
+    val scrollWallpaper = uiSettings.scrollWallpaper
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
+
+    fun setScrollWallpaper(scrollWallpaper: Boolean) {
+        uiSettings.setScrollWallpaper(scrollWallpaper)
+    }
+
     fun openWallpaperChooser(context: AppCompatActivity) {
         context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SET_WALLPAPER), null))
     }

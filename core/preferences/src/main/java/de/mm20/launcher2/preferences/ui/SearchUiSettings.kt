@@ -1,5 +1,6 @@
 package de.mm20.launcher2.preferences.ui
 
+import de.mm20.launcher2.preferences.AppsSortOrder
 import de.mm20.launcher2.preferences.LauncherDataStore
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -40,6 +41,15 @@ class SearchUiSettings internal constructor(
     fun setAllApps(allAppsGrid: Boolean) {
         launcherDataStore.update {
             it.copy(searchAllApps = allAppsGrid)
+        }
+    }
+
+    val appsSortOrder
+        get() = launcherDataStore.data.map { it.appsSortOrder }.distinctUntilChanged()
+
+    fun setAppsSortOrder(appsSortOrder: AppsSortOrder) {
+        launcherDataStore.update {
+            it.copy(appsSortOrder = appsSortOrder)
         }
     }
 

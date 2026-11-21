@@ -117,6 +117,11 @@ interface SavableSearchableRepository : Backupable {
     fun getWeights(keys: List<String>): Flow<Map<String, Double>>
 
     /**
+     * Launch statistics of all saved searchables of the given type, keyed by searchable key.
+     */
+    fun getUsageStats(type: String): Flow<Map<String, UsageStats>>
+
+    /**
      * Remove this item from the Searchable database
      */
     fun delete(searchable: SavableSearchable)
@@ -178,6 +183,7 @@ internal class SavableSearchableRepositoryImpl(
                     pinPosition = pinned?.let { if (it) 1 else 0 } ?: entity?.pinPosition ?: 0,
                     launchCount = launchCount ?: entity?.launchCount ?: 0,
                     weight = weight ?: entity?.weight ?: 0.0,
+                    lastLaunch = entity?.lastLaunch ?: 0L,
                     serializedSearchable = searchable.serialize() ?: return@launch,
                 )
             )
@@ -202,6 +208,7 @@ internal class SavableSearchableRepositoryImpl(
                     pinPosition = pinned?.let { if (it) 1 else 0 } ?: entity?.pinPosition ?: 0,
                     launchCount = launchCount ?: entity?.launchCount ?: 0,
                     weight = weight ?: entity?.weight ?: 0.0,
+                    lastLaunch = entity?.lastLaunch ?: 0L,
                     serializedSearchable = searchable.serialize() ?: return@launch,
                 )
             )
@@ -396,6 +403,18 @@ internal class SavableSearchableRepositoryImpl(
         return database.searchableDao().sortByWeight(keys)
     }
 
+    override fun getUsageStats(type: String): Flow<Map<String, UsageStats>> {
+        return database.searchableDao().getUsageStats(type).map { stats ->
+            stats.associate {
+                it.key to UsageStats(
+                    launchCount = it.launchCount,
+                    weight = it.weight,
+                    lastLaunch = it.lastLaunch,
+                )
+            }
+        }
+    }
+
     override fun getWeights(keys: List<String>): Flow<Map<String, Double>> {
         if (keys.size > 999) return flowOf(emptyMap())
         return database.searchableDao().getWeights(keys)
@@ -461,6 +480,7 @@ internal class SavableSearchableRepositoryImpl(
                         "pinPosition" to fav.pinPosition,
                         "searchable" to fav.serializedSearchable,
                         "weight" to fav.weight,
+                        "lastLaunch" to fav.lastLaunch,
                     )
                 )
             }
@@ -494,7 +514,8 @@ internal class SavableSearchableRepositoryImpl(
                         launchCount = json.getInt("launchCount"),
                         visibility = json.optInt("visibility", 0),
                         pinPosition = json.getInt("pinPosition"),
-                        weight = json.optDouble("weight").takeIf { !it.isNaN() } ?: 0.0
+                        weight = json.optDouble("weight").takeIf { !it.isNaN() } ?: 0.0,
+                        lastLaunch = json.optLong("lastLaunch", 0L),
                     )
                     favorites.add(entity)
                 }
