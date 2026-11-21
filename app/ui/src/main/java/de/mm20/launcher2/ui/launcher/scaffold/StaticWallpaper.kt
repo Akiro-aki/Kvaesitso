@@ -1,9 +1,4 @@
-        // WallpaperManager caches the bitmap until the wallpaper changes, so the same wallpaper
-        // comes back as the same object and needs no redraw.
-        if (bitmap !== source) {
-            source = bitmap
-            wallpaper = bitmap?.asImageBitmap()?.also { it.prepareToDraw() }
-        }package de.mm20.launcher2.ui.launcher.scaffold
+package de.mm20.launcher2.ui.launcher.scaffold
 
 import android.Manifest
 import android.app.WallpaperManager
@@ -152,8 +147,8 @@ private fun loadStaticWallpaper(context: Context, wallpaperManager: WallpaperMan
     if (wallpaperManager.wallpaperInfo != null) return null
     if (!canReadWallpaper(context)) return null
     return try {
-        @Suppress("MissingPermission")
-        (wallpaperManager.drawable as? BitmapDrawable)?.bitmap
+        val drawable = wallpaperManager.drawable
+        (drawable as? BitmapDrawable)?.bitmap
     } catch (e: SecurityException) {
         Log.w("StaticWallpaper", "Cannot read the wallpaper", e)
         null
