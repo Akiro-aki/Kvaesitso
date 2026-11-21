@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Path
@@ -49,6 +50,23 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     private val recentPackages = ArrayDeque<String>()
 
     /**
+     * Keeps [recentPackages] across restarts of the service, which happen whenever the launcher is
+     * updated or its process is killed. Without it, only apps opened since then can be switched to.
+     */
+    private val prefs = service.getSharedPreferences("edge_app_switcher", Context.MODE_PRIVATE)
+
+    init {
+        prefs.getString(PrefRecents, null)
+            ?.split(',')
+            ?.filter { it.isNotBlank() }
+            ?.let { recentPackages.addAll(it.take(MaxRecentApps)) }
+    }
+
+    private fun saveRecents() {
+        prefs.edit().putString(PrefRecents, recentPackages.joinToString(",")).apply()
+    }
+
+    /**
      * The app in the foreground, or null if it is the home screen or recents.
      */
     private var foregroundPackage: String? = null
@@ -88,6 +106,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
     fun onWindowStateChanged(packageName: String?) {
         packageName ?: return
+        Log.d("EdgeAppSwitcher", "Window state changed: $packageName (foreground was $foregroundPackage)")
         if (packageName != service.packageName && packageName in homePackages) {
             // The system's own launcher, which still runs the system's recents screen. On Honor
             // and Huawei it also briefly opens it for each sideways swipe along the bottom edge,
@@ -115,6 +134,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         recentPackages.remove(packageName)
         recentPackages.addFirst(packageName)
         while (recentPackages.size > MaxRecentApps) recentPackages.removeLast()
+        saveRecents()
     }
 
     private fun isLaunchable(packageName: String): Boolean {
@@ -320,6 +340,10 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
             }
 
         var index = if (towardsOlder) sessionIndex + 1 else sessionIndex - 1
+        Log.d(
+            "EdgeAppSwitcher",
+            "Switch towardsOlder=$towardsOlder session=$recents index=$sessionIndex -> $index"
+        )
         while (index in recents.indices) {
             if (launch(recents[index], towardsOlder)) {
                 overlay?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -329,7 +353,10 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
                 return
             }
             // The app is gone, try the one after it.
-            recents.removeAt(index)?.let { recentPackages.remove(it) }
+            recents.removeAt(index)?.let {
+                recentPackages.remove(it)
+                saveRecents()
+            }
             if (!towardsOlder) index--
         }
     }
@@ -412,6 +439,8 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     }
 
     companion object {
+        private const val PrefRecents = "recents"
+
         private const val MaxRecentApps = 20
 
         /**
