@@ -73,11 +73,25 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
     private val launchableCache = mutableMapOf<String, Boolean>()
 
-    private val homePackages: Set<String> by lazy {
-        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
-            .map { it.activityInfo.packageName }
-            .toSet() + service.packageName
+    /**
+     * The package that provides the system's recents screen: the system's own launcher, which
+     * keeps running it when another launcher is the default. Other installed launchers are
+     * ordinary apps.
+     */
+    @SuppressLint("DiscouragedApi")
+    private val systemRecentsPackage: String? by lazy {
+        val res = android.content.res.Resources.getSystem()
+        val id = res.getIdentifier("config_recentsComponentName", "string", "android")
+        val fromConfig = if (id != 0) {
+            res.getString(id).substringBefore('/').takeIf { it.isNotBlank() }
+        } else null
+        fromConfig ?: run {
+            // Falls back to the preinstalled launcher.
+            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            packageManager.queryIntentActivities(intent, PackageManager.MATCH_SYSTEM_ONLY)
+                .map { it.activityInfo.packageName }
+                .firstOrNull { it != service.packageName && it != "com.android.settings" }
+        }
     }
 
     private val imePackages: Set<String>
@@ -107,7 +121,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     fun onWindowStateChanged(packageName: String?) {
         packageName ?: return
         Log.d("EdgeAppSwitcher", "Window state changed: $packageName (foreground was $foregroundPackage)")
-        if (packageName != service.packageName && packageName in homePackages) {
+        if (packageName == systemRecentsPackage) {
             // The system's own launcher, which still runs the system's recents screen. On Honor
             // and Huawei it also briefly opens it for each sideways swipe along the bottom edge,
             // then returns to the app (that is the flicker). Neither means that the user went
@@ -118,12 +132,14 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         }
         val recentsWasVisible = systemRecentsVisible
         systemRecentsVisible = false
-        if (recentsWasVisible && pendingSwitch != null) {
+        if (recentsWasVisible && pendingSwipes.isNotEmpty()) {
             // The system's recents transition is over, so a switch no longer gets swallowed by it.
             handler.removeCallbacks(runPendingSwitch)
+            handler.removeCallbacks(checkSystemRecents)
             handler.postDelayed(runPendingSwitch, AfterSystemRecentsDelayMs)
         }
-        if (packageName in homePackages) {
+        if (packageName == service.packageName) {
+            // This launcher, the home screen.
             foregroundPackage = null
             return
         }
@@ -146,6 +162,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     @SuppressLint("ClickableViewAccessibility")
     fun show() {
         if (overlay != null) return
+        Log.d("EdgeAppSwitcher", "System recents package: $systemRecentsPackage, recents: $recentPackages")
         val view = View(service)
         view.setOnTouchListener { _, event ->
             onTouch(event)
@@ -188,7 +205,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
     fun hide() {
         handler.removeCallbacksAndMessages(null)
-        pendingSwitch = null
+        pendingSwipes.clear()
         overlay?.let {
             try {
                 windowManager.removeView(it)
@@ -284,10 +301,11 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     }
 
     /**
-     * Direction (true for a swipe to the right) of a switch that waits for the system's recents
-     * transition to end, or null.
+     * Directions (true for a swipe to the right) of swipes whose switch waits for the system's
+     * recents transition to end. Swipes in quick succession add up, so that swiping three times
+     * goes back three apps, with a single switch at the end.
      */
-    private var pendingSwitch: Boolean? = null
+    private val pendingSwipes = mutableListOf<Boolean>()
 
     /**
      * Whether the system's recents screen (of the system's own launcher) is in the foreground.
@@ -295,9 +313,10 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     private var systemRecentsVisible = false
 
     private val runPendingSwitch = Runnable {
-        val swipeRight = pendingSwitch ?: return@Runnable
-        pendingSwitch = null
-        switchApp(swipeRight)
+        if (pendingSwipes.isEmpty()) return@Runnable
+        val swipes = pendingSwipes.toList()
+        pendingSwipes.clear()
+        switchApp(swipes)
     }
 
     /**
@@ -308,9 +327,13 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
      */
     private fun scheduleSwitch(swipeRight: Boolean) {
         handler.removeCallbacks(runPendingSwitch)
-        pendingSwitch = swipeRight
-        handler.postDelayed({
-            if (pendingSwitch == null) return@postDelayed
+        handler.removeCallbacks(checkSystemRecents)
+        pendingSwipes += swipeRight
+        handler.postDelayed(checkSystemRecents, SystemRecentsWaitMs)
+    }
+
+    private val checkSystemRecents = Runnable {
+        if (pendingSwipes.isNotEmpty()) {
             if (systemRecentsVisible) {
                 // Gone after about 100 ms. Returning to the same app sends no window state
                 // change, so this usually runs on the timeout. In case the recents screen stays
@@ -319,7 +342,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
             } else {
                 runPendingSwitch.run()
             }
-        }, SystemRecentsWaitMs)
+        }
     }
 
     /**
@@ -330,14 +353,15 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     private var olderIsRight = true
 
     /**
-     * Switches apps for a swipe along the bottom edge, to the right if [swipeRight].
+     * Switches apps for swipes along the bottom edge (true for a swipe to the right), one step
+     * through the recent apps per swipe.
      */
-    private fun switchApp(swipeRight: Boolean) {
+    private fun switchApp(swipes: List<Boolean>) {
         val now = System.currentTimeMillis()
         val recents = session?.takeIf { now - lastSwitchTime < SessionTimeoutMs }?.toMutableList()
             ?: run {
                 sessionIndex = 0
-                olderIsRight = swipeRight
+                olderIsRight = swipes.first()
                 val foreground = foregroundPackage
                 if (foreground != null && recentPackages.firstOrNull() == foreground) {
                     recentPackages.toMutableList<String?>()
@@ -346,13 +370,23 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
                     (listOf<String?>(null) + recentPackages.filter { it != foreground }).toMutableList()
                 }
             }
+        val swipeRight = swipes.last()
         val towardsOlder = swipeRight == olderIsRight
 
-        var index = if (towardsOlder) sessionIndex + 1 else sessionIndex - 1
+        var index = sessionIndex
+        for (swipe in swipes) {
+            index = if (swipe == olderIsRight) index + 1 else index - 1
+            index = index.coerceIn(0, recents.lastIndex.coerceAtLeast(0))
+        }
         Log.d(
             "EdgeAppSwitcher",
-            "Switch towardsOlder=$towardsOlder session=$recents index=$sessionIndex -> $index"
+            "Switch swipes=$swipes session=$recents index=$sessionIndex -> $index"
         )
+        // Even a switch that goes nowhere continues the session, so that a swipe past the end of
+        // the list does not start over from the current app.
+        lastSwitchTime = now
+        session = recents
+        if (index == sessionIndex) return
         while (index in recents.indices) {
             if (launch(recents[index], swipeRight)) {
                 overlay?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
