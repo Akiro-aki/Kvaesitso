@@ -51,6 +51,7 @@ import de.mm20.launcher2.ui.component.preferences.Preference
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
 import de.mm20.launcher2.ui.component.preferences.SliderPreference
+import de.mm20.launcher2.ui.component.preferences.GuardedPreference
 import de.mm20.launcher2.ui.component.preferences.SwitchPreference
 import de.mm20.launcher2.ui.launcher.widgets.clock.ConfigureClockWidgetSheet
 import de.mm20.launcher2.ui.locals.LocalDarkTheme
@@ -199,14 +200,21 @@ fun HomescreenSettingsScreen() {
                         viewModel.setDimWallpaper(it)
                     }
                 )
-                SwitchPreference(
-                    title = stringResource(R.string.preference_scroll_wallpaper),
-                    summary = stringResource(R.string.preference_scroll_wallpaper_summary),
-                    value = scrollWallpaper,
-                    onValueChanged = {
-                        viewModel.setScrollWallpaper(it)
-                    }
-                )
+                val canReadWallpaper by viewModel.canReadWallpaper.collectAsStateWithLifecycle()
+                GuardedPreference(
+                    locked = scrollWallpaper == true && canReadWallpaper == false,
+                    description = stringResource(R.string.missing_permission_scroll_static_wallpaper),
+                    onUnlock = { viewModel.requestWallpaperPermission(context as AppCompatActivity) },
+                ) {
+                    SwitchPreference(
+                        title = stringResource(R.string.preference_scroll_wallpaper),
+                        summary = stringResource(R.string.preference_scroll_wallpaper_summary),
+                        value = scrollWallpaper,
+                        onValueChanged = {
+                            viewModel.setScrollWallpaper(it)
+                        }
+                    )
+                }
                 val isBlurSupported = remember { viewModel.isBlurAvailable(context) }
                 SwitchPreference(
                     title = stringResource(R.string.preference_blur_wallpaper),

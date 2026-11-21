@@ -1278,6 +1278,17 @@ internal fun LauncherScaffold(
         }
 
 
+        if (config.scrollWallpaper) {
+            // The system no longer scrolls static wallpapers, so the launcher draws them itself.
+            StaticWallpaper(
+                state = state,
+                wallpaperManager = wallpaperManager,
+                blurRadius = if (config.wallpaperBlurRadius > 0.dp) {
+                    config.wallpaperBlurRadius.toPixels()
+                } else 0f,
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1791,23 +1802,7 @@ private fun WallpaperScrollEffect(
             }
             return@LaunchedEffect
         }
-        snapshotFlow {
-            val progress = state.currentProgress.coerceIn(0f, 1f)
-            // Vertical page changes pan horizontally as well: most wallpapers only scroll along x
-            // (live wallpapers like Paperize ignore the y offset entirely, and static wallpapers
-            // rarely have vertical overflow). A wallpaper scaled to fill the screen only overflows
-            // on one axis, so it never moves diagonally.
-            when (state.currentGesture) {
-                Gesture.SwipeLeft -> Offset(0.5f + 0.5f * progress, 0.5f)
-                Gesture.SwipeRight -> Offset(0.5f - 0.5f * progress, 0.5f)
-                Gesture.SwipeUp -> Offset(0.5f + 0.5f * progress, 0.5f + 0.5f * progress)
-                Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset(
-                    0.5f - 0.5f * progress,
-                    0.5f - 0.5f * progress,
-                )
-                else -> Offset(0.5f, 0.5f)
-            }
-        }
+        snapshotFlow { state.wallpaperOffset() }
             .distinctUntilChanged()
             .collect { offset ->
                 val token = view.windowToken ?: return@collect

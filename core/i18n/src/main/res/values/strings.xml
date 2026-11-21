@@ -545,6 +545,7 @@
     <string name="preference_blur_wallpaper_summary">Use a blur effect on the wallpaper</string>
     <string name="preference_scroll_wallpaper">Scroll wallpaper</string>
     <string name="preference_scroll_wallpaper_summary">Pan the wallpaper when swiping between pages. Works best with wallpapers wider or taller than the screen</string>
+    <string name="missing_permission_scroll_static_wallpaper">The system no longer scrolls static wallpapers, so the launcher draws them itself, which needs all files access to read the wallpaper. Live wallpapers scroll without it.</string>
     <string name="preference_blur_wallpaper_unsupported">Not supported on this device</string>
     <string name="preference_blur_wallpaper_radius">Blur radius</string>
     <string name="preference_wallpaper_summary">Choose a wallpaper</string>

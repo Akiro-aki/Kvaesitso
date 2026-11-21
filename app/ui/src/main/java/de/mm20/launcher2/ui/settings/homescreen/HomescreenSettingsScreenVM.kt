@@ -13,6 +13,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
+import de.mm20.launcher2.permissions.PermissionGroup
+import de.mm20.launcher2.permissions.PermissionsManager
 import de.mm20.launcher2.preferences.GestureAction
 import de.mm20.launcher2.preferences.ScreenOrientation
 import de.mm20.launcher2.preferences.SearchBarColors
@@ -33,6 +35,7 @@ class HomescreenSettingsScreenVM(
     private val uiSettings: UiSettings,
     private val clockWidgetSettings: ClockWidgetSettings,
     private val gestureSettings: GestureSettings,
+    private val permissionsManager: PermissionsManager,
 ) : ViewModel() {
 
     var showClockWidgetSheet by mutableStateOf(false)
@@ -64,6 +67,16 @@ class HomescreenSettingsScreenVM(
 
     fun setScrollWallpaper(scrollWallpaper: Boolean) {
         uiSettings.setScrollWallpaper(scrollWallpaper)
+    }
+
+    /**
+     * Whether the launcher may read the wallpaper, which it needs to scroll a static wallpaper.
+     */
+    val canReadWallpaper = permissionsManager.hasPermission(PermissionGroup.ExternalStorage)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    fun requestWallpaperPermission(context: AppCompatActivity) {
+        permissionsManager.requestPermission(context, PermissionGroup.ExternalStorage)
     }
 
     fun openWallpaperChooser(context: AppCompatActivity) {
@@ -180,6 +193,7 @@ class HomescreenSettingsScreenVM(
                     uiSettings = get(),
                     clockWidgetSettings = get(),
                     gestureSettings = get(),
+                    permissionsManager = get(),
                 )
             }
         }
