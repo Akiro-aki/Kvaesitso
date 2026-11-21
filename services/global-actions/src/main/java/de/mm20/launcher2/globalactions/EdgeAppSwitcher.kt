@@ -88,6 +88,22 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
     fun onWindowStateChanged(packageName: String?) {
         packageName ?: return
+        if (packageName != service.packageName && packageName in homePackages) {
+            // The system's own launcher, which still runs the system's recents screen. On Honor
+            // and Huawei it also briefly opens it for each sideways swipe along the bottom edge,
+            // then returns to the app (that is the flicker). Neither means that the user went
+            // home, so the foreground app stays the same.
+            Log.d("EdgeAppSwitcher", "System recents shown ($packageName)")
+            systemRecentsVisible = true
+            return
+        }
+        val recentsWasVisible = systemRecentsVisible
+        systemRecentsVisible = false
+        if (recentsWasVisible && pendingSwitch != null) {
+            // The system's recents transition is over, so a switch no longer gets swallowed by it.
+            handler.removeCallbacks(runPendingSwitch)
+            handler.postDelayed(runPendingSwitch, AfterSystemRecentsDelayMs)
+        }
         if (packageName in homePackages) {
             foregroundPackage = null
             return
@@ -152,6 +168,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
     fun hide() {
         handler.removeCallbacksAndMessages(null)
+        pendingSwitch = null
         overlay?.let {
             try {
                 windowManager.removeView(it)
@@ -221,17 +238,15 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
         when {
             abs(dx) >= minSwipeDistance && isHorizontal -> {
-                switchApp(towardsOlder = dx > 0)
+                scheduleSwitch(towardsOlder = dx > 0)
             }
 
-            // With gesture navigation, the system takes over the touch as soon as it has moved past
-            // its touch slop, long before it covers the minimum swipe distance, so a cancelled
-            // touch has only moved a few pixels. On the systems this is for, the system then fails
-            // to switch apps itself (the screen flickers), so a clearly sideways start is enough.
-            // The switch waits for the system's failed transition to finish, which would otherwise
-            // swallow it.
+            // If the system takes over the touch, it does so as soon as it has moved past its touch
+            // slop, long before it covers the minimum swipe distance, so a cancelled touch has only
+            // moved a few pixels. On the systems this is for, the system then fails to switch apps
+            // itself, so a clearly sideways start is enough.
             cancelled && abs(dx) >= touchSlop && isHorizontal -> {
-                handler.postDelayed({ switchApp(towardsOlder = dx > 0) }, CancelledSwitchDelayMs)
+                scheduleSwitch(towardsOlder = dx > 0)
             }
 
             cancelled -> {}
@@ -246,6 +261,43 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
                 forwardTap(x, y, time - downTime)
             }
         }
+    }
+
+    /**
+     * Direction of a switch that waits for the system's recents transition to end, or null.
+     */
+    private var pendingSwitch: Boolean? = null
+
+    /**
+     * Whether the system's recents screen (of the system's own launcher) is in the foreground.
+     */
+    private var systemRecentsVisible = false
+
+    private val runPendingSwitch = Runnable {
+        val towardsOlder = pendingSwitch ?: return@Runnable
+        pendingSwitch = null
+        switchApp(towardsOlder)
+    }
+
+    /**
+     * Switches apps once the system is done with the swipe. On Honor and Huawei, the system
+     * reacts to the same swipe by opening its recents screen for a moment and going back to the
+     * app. An app started during that transition is swallowed by it, and the recents screen stays
+     * open. So if the recents screen shows up, the switch waits until it is gone.
+     */
+    private fun scheduleSwitch(towardsOlder: Boolean) {
+        handler.removeCallbacks(runPendingSwitch)
+        pendingSwitch = towardsOlder
+        handler.postDelayed({
+            if (pendingSwitch == null) return@postDelayed
+            if (systemRecentsVisible) {
+                // Normally gone in about 100 ms, then onWindowStateChanged runs the switch. In
+                // case it stays open, switch anyway, which also closes it.
+                handler.postDelayed(runPendingSwitch, SystemRecentsTimeoutMs)
+            } else {
+                runPendingSwitch.run()
+            }
+        }, SystemRecentsWaitMs)
     }
 
     /**
@@ -371,10 +423,20 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         private const val HorizontalSwipeRatio = 1.5f
 
         /**
-         * Delay of a switch after the system took over the touch, for the system's own (failed)
-         * transition to end first.
+         * Time to wait after a swipe for the system's recents screen to show up. On Honor it
+         * opens about 30 ms after the touch ends.
          */
-        private const val CancelledSwitchDelayMs = 250L
+        private const val SystemRecentsWaitMs = 120L
+
+        /**
+         * Longest time to wait for the system's recents screen to close again.
+         */
+        private const val SystemRecentsTimeoutMs = 700L
+
+        /**
+         * Delay of a switch after the system's recents screen closed, for its transition to end.
+         */
+        private const val AfterSystemRecentsDelayMs = 80L
 
         private const val DefaultGestureAreaHeightDp = 24f
         private const val MinGestureAreaHeightDp = 16f
