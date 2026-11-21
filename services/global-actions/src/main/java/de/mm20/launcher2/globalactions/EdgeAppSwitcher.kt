@@ -78,7 +78,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
      * keeps running it when another launcher is the default. Other installed launchers are
      * ordinary apps.
      */
-    @SuppressLint("DiscouragedApi")
+    @get:SuppressLint("DiscouragedApi")
     private val systemRecentsPackage: String? by lazy {
         val res = android.content.res.Resources.getSystem()
         val id = res.getIdentifier("config_recentsComponentName", "string", "android")
