@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.mm20.launcher2.searchable.SavableSearchableRepository
+import de.mm20.launcher2.preferences.WallpaperSideScroll
 import de.mm20.launcher2.preferences.ColorScheme
 import de.mm20.launcher2.preferences.GestureAction
 import de.mm20.launcher2.preferences.ScreenOrientation
@@ -77,6 +78,8 @@ class LauncherScaffoldVM : ViewModel(), KoinComponent {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 32)
     val scrollWallpaper = uiSettings.scrollWallpaper
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
+    val wallpaperSideScroll = uiSettings.wallpaperSideScroll
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), WallpaperSideScroll.PagesOnly)
 
 
     val fillClockHeight = uiSettings.clockFillScreen

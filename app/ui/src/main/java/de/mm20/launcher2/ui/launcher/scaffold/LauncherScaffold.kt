@@ -103,6 +103,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.mm20.launcher2.ktx.isAtLeastApiLevel
 import de.mm20.launcher2.preferences.SearchBarStyle
+import de.mm20.launcher2.preferences.WallpaperSideScroll
 import de.mm20.launcher2.searchactions.actions.SearchAction
 import de.mm20.launcher2.ui.component.SearchBarLevel
 import de.mm20.launcher2.ui.ktx.toPixels
@@ -196,6 +197,10 @@ internal data class ScaffoldConfiguration(
      * pages.
      */
     val scrollWallpaper: Boolean = false,
+    /**
+     * How the wallpaper reacts to sideways swipes without an action, if [scrollWallpaper].
+     */
+    val wallpaperSideScroll: WallpaperSideScroll = WallpaperSideScroll.PagesOnly,
     /**
      * Show the navigation bar
      */
@@ -511,6 +516,65 @@ internal class LauncherScaffoldState(
         if (isLocked || currentZOffset > 0f) return
         isDragged = true
         offsetAnimatable.stop()
+        wallpaperPanAnimatable.stop()
+    }
+
+    /**
+     * Horizontal wallpaper position (0..1, 0.5 is the center) set by sideways swipes that have no
+     * action, see [ScaffoldConfiguration.wallpaperSideScroll].
+     */
+    private var wallpaperPan by mutableFloatStateOf(0.5f)
+
+    private val wallpaperPanAnimatable = Animatable(0.5f)
+
+    /**
+     * How far [wallpaperPan] moves the wallpaper from where the pages put it, -0.5..0.5.
+     */
+    val wallpaperPanShift: Float
+        get() = if (config.scrollWallpaper && config.wallpaperSideScroll != WallpaperSideScroll.PagesOnly) {
+            wallpaperPan - 0.5f
+        } else 0f
+
+    /**
+     * Movement of a drag that no gesture took, until it is clear whether it goes sideways.
+     */
+    private var freeDragTotal = Offset.Zero
+
+    /**
+     * Whether a drag that no gesture took goes sideways (and pans the wallpaper), null while
+     * undecided.
+     */
+    private var freeDragSideways: Boolean? = null
+
+    /**
+     * Pans the wallpaper for a sideways drag without an action. A drag across the full width of
+     * the screen moves it by half its scroll range, like moving by one of three home pages.
+     */
+    private fun onFreeDrag(offset: Offset) {
+        if (!config.scrollWallpaper || config.wallpaperSideScroll == WallpaperSideScroll.PagesOnly) return
+        if (freeDragSideways == null) {
+            freeDragTotal += offset
+            if (freeDragTotal.getDistance() < touchSlop) return
+            freeDragSideways = freeDragTotal.x.absoluteValue > freeDragTotal.y.absoluteValue
+        }
+        if (freeDragSideways != true || size.width <= 0f) return
+        wallpaperPan = (wallpaperPan - offset.x / size.width * 0.5f).coerceIn(0f, 1f)
+    }
+
+    /**
+     * Ends a sideways drag without an action: the wallpaper stays where it is, or slides back to
+     * the center for [WallpaperSideScroll.SpringBack].
+     */
+    private suspend fun onFreeDragStopped() {
+        val wasSideways = freeDragSideways == true
+        freeDragSideways = null
+        freeDragTotal = Offset.Zero
+        if (wasSideways && config.wallpaperSideScroll == WallpaperSideScroll.SpringBack) {
+            wallpaperPanAnimatable.snapTo(wallpaperPan)
+            wallpaperPanAnimatable.animateTo(0.5f, spring()) {
+                wallpaperPan = value
+            }
+        }
     }
 
 
@@ -520,7 +584,10 @@ internal class LauncherScaffoldState(
             currentGesture = getSwipeDirection(config, offset)
         }
 
-        val direction = currentGesture ?: return
+        val direction = currentGesture ?: run {
+            onFreeDrag(offset)
+            return
+        }
 
         val gesture = config[direction] ?: return
         val controller = getAnimationController(gesture.animation) ?: return
@@ -623,7 +690,11 @@ internal class LauncherScaffoldState(
         }
         if (currentGesture == null) {
             currentOffset3D = Offset3D.Zero
+            onFreeDragStopped()
+            return
         }
+        freeDragSideways = null
+        freeDragTotal = Offset.Zero
         val direction = currentGesture ?: return
         val wasPageOpen = isSettledOnSecondaryPage
 

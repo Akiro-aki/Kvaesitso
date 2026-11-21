@@ -20,6 +20,7 @@ import de.mm20.launcher2.preferences.ScreenOrientation
 import de.mm20.launcher2.preferences.SearchBarColors
 import de.mm20.launcher2.preferences.SearchBarStyle
 import de.mm20.launcher2.preferences.SystemBarColors
+import de.mm20.launcher2.preferences.WallpaperSideScroll
 import de.mm20.launcher2.preferences.ui.ClockWidgetSettings
 import de.mm20.launcher2.preferences.ui.GestureSettings
 import de.mm20.launcher2.preferences.ui.UiSettings
@@ -67,6 +68,13 @@ class HomescreenSettingsScreenVM(
 
     fun setScrollWallpaper(scrollWallpaper: Boolean) {
         uiSettings.setScrollWallpaper(scrollWallpaper)
+    }
+
+    val wallpaperSideScroll = uiSettings.wallpaperSideScroll
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    fun setWallpaperSideScroll(sideScroll: WallpaperSideScroll) {
+        uiSettings.setWallpaperSideScroll(sideScroll)
     }
 
     /**

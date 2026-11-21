@@ -177,10 +177,12 @@ private fun canReadWallpaper(context: Context): Boolean {
  * wallpapers like Paperize ignore the y offset entirely, and static wallpapers rarely have
  * vertical overflow). A wallpaper scaled to fill the screen only overflows on one axis, so it never
  * moves diagonally.
+ *
+ * Sideways swipes without an action add [LauncherScaffoldState.wallpaperPanShift].
  */
 internal fun LauncherScaffoldState.wallpaperOffset(): Offset {
     val progress = currentProgress.coerceIn(0f, 1f)
-    return when (currentGesture) {
+    val pages = when (currentGesture) {
         Gesture.SwipeLeft -> Offset(0.5f + 0.5f * progress, 0.5f)
         Gesture.SwipeRight -> Offset(0.5f - 0.5f * progress, 0.5f)
         Gesture.SwipeUp -> Offset(0.5f + 0.5f * progress, 0.5f + 0.5f * progress)
@@ -191,4 +193,6 @@ internal fun LauncherScaffoldState.wallpaperOffset(): Offset {
 
         else -> Offset(0.5f, 0.5f)
     }
+    // Plus wherever sideways swipes without an action panned it
+    return Offset((pages.x + wallpaperPanShift).coerceIn(0f, 1f), pages.y)
 }

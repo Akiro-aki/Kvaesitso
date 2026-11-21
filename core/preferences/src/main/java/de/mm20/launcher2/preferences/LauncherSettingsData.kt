@@ -32,6 +32,7 @@ data class LauncherSettingsData internal constructor(
     val wallpaperBlur: Boolean = true,
     val wallpaperBlurRadius: Int = 32,
     val wallpaperScroll: Boolean = false,
+    val wallpaperSideScroll: WallpaperSideScroll = WallpaperSideScroll.PagesOnly,
 
     val mediaAllowList: Set<String> = emptySet(),
     val mediaDenyList: Set<String> = emptySet(),
@@ -242,6 +243,28 @@ data class LauncherSettingsData internal constructor(
     ) : this(
         gridColumnCount = context.resources.getInteger(R.integer.config_columnCount),
     )
+}
+
+/**
+ * How the wallpaper reacts to sideways swipes on the home screen that have no action, while
+ * wallpaper scrolling is on.
+ */
+@Serializable
+enum class WallpaperSideScroll {
+    /**
+     * It only moves when a swipe opens a page.
+     */
+    PagesOnly,
+
+    /**
+     * It follows the finger and stays where it was left, like moving between home pages.
+     */
+    Pan,
+
+    /**
+     * It follows the finger and slides back to the center when the finger is lifted.
+     */
+    SpringBack,
 }
 
 @Serializable

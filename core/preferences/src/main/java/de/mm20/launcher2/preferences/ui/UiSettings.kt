@@ -5,6 +5,7 @@ import de.mm20.launcher2.preferences.GestureAction
 import de.mm20.launcher2.preferences.IconShape
 import de.mm20.launcher2.preferences.LauncherDataStore
 import de.mm20.launcher2.preferences.ScreenOrientation
+import de.mm20.launcher2.preferences.WallpaperSideScroll
 import de.mm20.launcher2.preferences.SearchBarColors
 import de.mm20.launcher2.preferences.SearchBarStyle
 import de.mm20.launcher2.preferences.SystemBarColors
@@ -145,6 +146,17 @@ class UiSettings internal constructor(
     fun setScrollWallpaper(scrollWallpaper: Boolean) {
         launcherDataStore.update {
             it.copy(wallpaperScroll = scrollWallpaper)
+        }
+    }
+
+    val wallpaperSideScroll
+        get() = launcherDataStore.data.map {
+            it.wallpaperSideScroll
+        }.distinctUntilChanged()
+
+    fun setWallpaperSideScroll(sideScroll: WallpaperSideScroll) {
+        launcherDataStore.update {
+            it.copy(wallpaperSideScroll = sideScroll)
         }
     }
 

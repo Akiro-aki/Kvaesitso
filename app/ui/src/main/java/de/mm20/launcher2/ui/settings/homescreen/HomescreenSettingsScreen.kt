@@ -42,6 +42,7 @@ import androidx.navigation3.runtime.NavKey
 import de.mm20.launcher2.preferences.SearchBarColors
 import de.mm20.launcher2.preferences.SearchBarStyle
 import de.mm20.launcher2.preferences.SystemBarColors
+import de.mm20.launcher2.preferences.WallpaperSideScroll
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.DismissableBottomSheet
 import de.mm20.launcher2.ui.component.SearchBar
@@ -215,6 +216,20 @@ fun HomescreenSettingsScreen() {
                         }
                     )
                 }
+                val wallpaperSideScroll by viewModel.wallpaperSideScroll.collectAsStateWithLifecycle()
+                ListPreference(
+                    title = stringResource(R.string.preference_wallpaper_side_scroll),
+                    items = listOf(
+                        stringResource(R.string.wallpaper_side_scroll_pages_only) to WallpaperSideScroll.PagesOnly,
+                        stringResource(R.string.wallpaper_side_scroll_pan) to WallpaperSideScroll.Pan,
+                        stringResource(R.string.wallpaper_side_scroll_spring_back) to WallpaperSideScroll.SpringBack,
+                    ),
+                    value = wallpaperSideScroll,
+                    onValueChanged = {
+                        if (it != null) viewModel.setWallpaperSideScroll(it)
+                    },
+                    enabled = scrollWallpaper == true,
+                )
                 val isBlurSupported = remember { viewModel.isBlurAvailable(context) }
                 SwitchPreference(
                     title = stringResource(R.string.preference_blur_wallpaper),

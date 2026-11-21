@@ -546,6 +546,10 @@
     <string name="preference_scroll_wallpaper">Scroll wallpaper</string>
     <string name="preference_scroll_wallpaper_summary">Pan the wallpaper when swiping between pages. Works best with wallpapers wider or taller than the screen</string>
     <string name="missing_permission_scroll_static_wallpaper">The system no longer scrolls static wallpapers, so the launcher draws them itself, which needs all files access to read the wallpaper. Live wallpapers scroll without it.</string>
+    <string name="preference_wallpaper_side_scroll">Sideways swipes</string>
+    <string name="wallpaper_side_scroll_pages_only">Only when a page opens</string>
+    <string name="wallpaper_side_scroll_pan">Pan and stay</string>
+    <string name="wallpaper_side_scroll_spring_back">Follow and spring back</string>
     <string name="preference_blur_wallpaper_unsupported">Not supported on this device</string>
     <string name="preference_blur_wallpaper_radius">Blur radius</string>
     <string name="preference_wallpaper_summary">Choose a wallpaper</string>
