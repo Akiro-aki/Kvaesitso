@@ -1780,7 +1780,9 @@ private fun WallpaperScrollEffect(
     view: View,
     state: LauncherScaffoldState,
 ) {
-    LaunchedEffect(enabled, wallpaperManager, view) {
+    // Keyed on the state too: it is recreated whenever the scaffold configuration changes (for
+    // example when a setting finishes loading), and the old one no longer sees any gesture.
+    LaunchedEffect(enabled, wallpaperManager, view, state) {
         // Three virtual pages per axis: 0, 0.5, 1
         wallpaperManager.setWallpaperOffsetSteps(0.5f, 0.5f)
         if (!enabled) {
