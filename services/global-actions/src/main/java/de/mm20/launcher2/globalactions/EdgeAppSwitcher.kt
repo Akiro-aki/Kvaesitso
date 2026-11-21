@@ -12,6 +12,7 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
@@ -127,11 +128,11 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
             // then returns to the app (that is the flicker). Neither means that the user went
             // home, so the foreground app stays the same.
             Log.d("EdgeAppSwitcher", "System recents shown ($packageName)")
-            systemRecentsVisible = true
+            systemRecentsShownAt = SystemClock.uptimeMillis()
             return
         }
-        val recentsWasVisible = systemRecentsVisible
-        systemRecentsVisible = false
+        val recentsWasVisible = isSystemRecentsVisible()
+        systemRecentsShownAt = 0L
         if (recentsWasVisible && pendingSwipes.isNotEmpty()) {
             // The system's recents transition is over, so a switch no longer gets swallowed by it.
             handler.removeCallbacks(runPendingSwitch)
@@ -308,9 +309,16 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     private val pendingSwipes = mutableListOf<Boolean>()
 
     /**
-     * Whether the system's recents screen (of the system's own launcher) is in the foreground.
+     * Uptime when the system's recents screen (of the system's own launcher) last came to the
+     * foreground, 0 if it is gone. Closing it into the same app sends no window state change, so
+     * it counts as gone after [SystemRecentsDurationMs] anyway.
      */
-    private var systemRecentsVisible = false
+    private var systemRecentsShownAt = 0L
+
+    private fun isSystemRecentsVisible(): Boolean {
+        return systemRecentsShownAt > 0L &&
+                SystemClock.uptimeMillis() - systemRecentsShownAt < SystemRecentsDurationMs
+    }
 
     private val runPendingSwitch = Runnable {
         if (pendingSwipes.isEmpty()) return@Runnable
@@ -329,16 +337,19 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         handler.removeCallbacks(runPendingSwitch)
         handler.removeCallbacks(checkSystemRecents)
         pendingSwipes += swipeRight
+        // Felt right away, while the switch itself may wait for the system.
+        overlay?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
         handler.postDelayed(checkSystemRecents, SystemRecentsWaitMs)
     }
 
     private val checkSystemRecents = Runnable {
         if (pendingSwipes.isNotEmpty()) {
-            if (systemRecentsVisible) {
-                // Gone after about 100 ms. Returning to the same app sends no window state
-                // change, so this usually runs on the timeout. In case the recents screen stays
-                // open, the switch closes it.
-                handler.postDelayed(runPendingSwitch, SystemRecentsTimeoutMs)
+            if (isSystemRecentsVisible()) {
+                // Closing it into the same app sends no window state change, so wait for the
+                // rest of the time it usually stays open. If it stays open longer, the switch
+                // closes it.
+                val remaining = systemRecentsShownAt + SystemRecentsDurationMs - SystemClock.uptimeMillis()
+                handler.postDelayed(runPendingSwitch, remaining.coerceAtLeast(0L))
             } else {
                 runPendingSwitch.run()
             }
@@ -389,7 +400,6 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         if (index == sessionIndex) return
         while (index in recents.indices) {
             if (launch(recents[index], swipeRight)) {
-                overlay?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 session = recents
                 sessionIndex = index
                 lastSwitchTime = now
@@ -498,21 +508,21 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
         /**
          * Time to wait after a swipe for the system's recents screen to show up. On Honor it
-         * opens about 30 ms after the touch ends.
+         * opens about 30 ms after the touch ends, often even before the overlay gets the end of
+         * the touch.
          */
-        private const val SystemRecentsWaitMs = 120L
+        private const val SystemRecentsWaitMs = 50L
 
         /**
-         * Time to wait for the system's recents screen to close again. On Honor it closes after
-         * about 100 ms, but returning to the same app sends no window state change, so this is
-         * usually how long the switch waits.
+         * How long the system's recents screen stays open after a swipe. On Honor it closes
+         * 80 to 100 ms after it opened.
          */
-        private const val SystemRecentsTimeoutMs = 250L
+        private const val SystemRecentsDurationMs = 130L
 
         /**
          * Delay of a switch after the system's recents screen closed, for its transition to end.
          */
-        private const val AfterSystemRecentsDelayMs = 80L
+        private const val AfterSystemRecentsDelayMs = 40L
 
         private const val DefaultGestureAreaHeightDp = 24f
         private const val MinGestureAreaHeightDp = 16f
