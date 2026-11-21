@@ -258,7 +258,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
 
         when {
             abs(dx) >= minSwipeDistance && isHorizontal -> {
-                scheduleSwitch(towardsOlder = dx > 0)
+                scheduleSwitch(swipeRight = dx > 0)
             }
 
             // If the system takes over the touch, it does so as soon as it has moved past its touch
@@ -266,7 +266,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
             // moved a few pixels. On the systems this is for, the system then fails to switch apps
             // itself, so a clearly sideways start is enough.
             cancelled && abs(dx) >= touchSlop && isHorizontal -> {
-                scheduleSwitch(towardsOlder = dx > 0)
+                scheduleSwitch(swipeRight = dx > 0)
             }
 
             cancelled -> {}
@@ -284,7 +284,8 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     }
 
     /**
-     * Direction of a switch that waits for the system's recents transition to end, or null.
+     * Direction (true for a swipe to the right) of a switch that waits for the system's recents
+     * transition to end, or null.
      */
     private var pendingSwitch: Boolean? = null
 
@@ -294,9 +295,9 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     private var systemRecentsVisible = false
 
     private val runPendingSwitch = Runnable {
-        val towardsOlder = pendingSwitch ?: return@Runnable
+        val swipeRight = pendingSwitch ?: return@Runnable
         pendingSwitch = null
-        switchApp(towardsOlder)
+        switchApp(swipeRight)
     }
 
     /**
@@ -305,9 +306,9 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
      * app. An app started during that transition is swallowed by it, and the recents screen stays
      * open. So if the recents screen shows up, the switch waits until it is gone.
      */
-    private fun scheduleSwitch(towardsOlder: Boolean) {
+    private fun scheduleSwitch(swipeRight: Boolean) {
         handler.removeCallbacks(runPendingSwitch)
-        pendingSwitch = towardsOlder
+        pendingSwitch = swipeRight
         handler.postDelayed({
             if (pendingSwitch == null) return@postDelayed
             if (systemRecentsVisible) {
@@ -322,14 +323,21 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     }
 
     /**
-     * Switches to the previous app if [towardsOlder], otherwise back to the next one, like
-     * swiping right and left along the bottom edge does in the system's gesture navigation.
+     * Whether swiping to the right goes to older apps in the current session. The first swipe of
+     * a session always goes to the previous app, whichever way it goes, and sets the direction:
+     * further swipes that way go further back, swipes the other way come forward again.
      */
-    private fun switchApp(towardsOlder: Boolean) {
+    private var olderIsRight = true
+
+    /**
+     * Switches apps for a swipe along the bottom edge, to the right if [swipeRight].
+     */
+    private fun switchApp(swipeRight: Boolean) {
         val now = System.currentTimeMillis()
         val recents = session?.takeIf { now - lastSwitchTime < SessionTimeoutMs }?.toMutableList()
             ?: run {
                 sessionIndex = 0
+                olderIsRight = swipeRight
                 val foreground = foregroundPackage
                 if (foreground != null && recentPackages.firstOrNull() == foreground) {
                     recentPackages.toMutableList<String?>()
@@ -338,6 +346,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
                     (listOf<String?>(null) + recentPackages.filter { it != foreground }).toMutableList()
                 }
             }
+        val towardsOlder = swipeRight == olderIsRight
 
         var index = if (towardsOlder) sessionIndex + 1 else sessionIndex - 1
         Log.d(
@@ -345,7 +354,7 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
             "Switch towardsOlder=$towardsOlder session=$recents index=$sessionIndex -> $index"
         )
         while (index in recents.indices) {
-            if (launch(recents[index], towardsOlder)) {
+            if (launch(recents[index], swipeRight)) {
                 overlay?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 session = recents
                 sessionIndex = index
@@ -362,9 +371,10 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
     }
 
     /**
-     * Brings [packageName]'s task to the front, or goes home if it is null.
+     * Brings [packageName]'s task to the front, or goes home if it is null. It slides in from the
+     * left if [swipeRight], following the finger.
      */
-    private fun launch(packageName: String?, towardsOlder: Boolean): Boolean {
+    private fun launch(packageName: String?, swipeRight: Boolean): Boolean {
         val intent = if (packageName == null) {
             Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         } else {
@@ -373,8 +383,8 @@ internal class EdgeAppSwitcher(private val service: AccessibilityService) {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         val options = ActivityOptions.makeCustomAnimation(
             service,
-            if (towardsOlder) R.anim.edge_switch_enter_from_left else R.anim.edge_switch_enter_from_right,
-            if (towardsOlder) R.anim.edge_switch_exit_to_right else R.anim.edge_switch_exit_to_left,
+            if (swipeRight) R.anim.edge_switch_enter_from_left else R.anim.edge_switch_enter_from_right,
+            if (swipeRight) R.anim.edge_switch_exit_to_right else R.anim.edge_switch_exit_to_left,
         )
         Log.d("EdgeAppSwitcher", "Switching to ${packageName ?: "home"}")
         return try {
