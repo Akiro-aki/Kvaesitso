@@ -1791,11 +1791,18 @@ private fun WallpaperScrollEffect(
         }
         snapshotFlow {
             val progress = state.currentProgress.coerceIn(0f, 1f)
+            // Vertical page changes pan horizontally as well: most wallpapers only scroll along x
+            // (live wallpapers like Paperize ignore the y offset entirely, and static wallpapers
+            // rarely have vertical overflow). A wallpaper scaled to fill the screen only overflows
+            // on one axis, so it never moves diagonally.
             when (state.currentGesture) {
                 Gesture.SwipeLeft -> Offset(0.5f + 0.5f * progress, 0.5f)
                 Gesture.SwipeRight -> Offset(0.5f - 0.5f * progress, 0.5f)
-                Gesture.SwipeUp -> Offset(0.5f, 0.5f + 0.5f * progress)
-                Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset(0.5f, 0.5f - 0.5f * progress)
+                Gesture.SwipeUp -> Offset(0.5f + 0.5f * progress, 0.5f + 0.5f * progress)
+                Gesture.SwipeDown, Gesture.SwipeDownRight -> Offset(
+                    0.5f - 0.5f * progress,
+                    0.5f - 0.5f * progress,
+                )
                 else -> Offset(0.5f, 0.5f)
             }
         }
