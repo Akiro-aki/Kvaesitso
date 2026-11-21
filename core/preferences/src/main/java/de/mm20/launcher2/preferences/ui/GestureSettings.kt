@@ -52,6 +52,20 @@ class GestureSettings internal constructor(
     val homeButton: Flow<GestureAction> = dataStore.data.map { it.gesturesHomeButton }
         .distinctUntilChanged()
 
+    /**
+     * Whether the launcher's accessibility service handles swipes along the bottom edge of the
+     * screen to switch between recent apps, for systems that disable that gesture when a
+     * third-party launcher is the default home app.
+     */
+    val edgeAppSwitch: Flow<Boolean> = dataStore.data.map { it.gesturesEdgeAppSwitch }
+        .distinctUntilChanged()
+
+    fun setEdgeAppSwitch(enabled: Boolean) {
+        dataStore.update {
+            it.copy(gesturesEdgeAppSwitch = enabled)
+        }
+    }
+
     fun setSwipeDown(action: GestureAction) {
         dataStore.update {
             it.copy(gesturesSwipeDown = action)

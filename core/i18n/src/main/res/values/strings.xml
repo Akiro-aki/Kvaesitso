@@ -846,6 +846,10 @@
     <string name="gesture_failed_message">You have performed a \"%1$s\" gesture. This gesture is currently set to trigger a \"%2$s\" action. However, the action could not be performed for the following reason:</string>
     <string name="missing_permission_accessibility_gesture_failed">The launcher\'s accessibility service needs to be enabled to perform this action.</string>
     <string name="missing_permission_accessibility_gesture_settings">This action requires the launcher\'s accessibility service to be enabled.</string>
+    <string name="preference_category_navigation_gestures">Navigation</string>
+    <string name="preference_gesture_edge_app_switch">Switch apps along the bottom edge</string>
+    <string name="preference_gesture_edge_app_switch_summary">Swipe left or right along the bottom edge of the screen to switch between recent apps. For systems that turn this gesture off for third-party launchers, such as Honor and Huawei devices</string>
+    <string name="missing_permission_accessibility_edge_app_switch">This feature requires the launcher\'s accessibility service to be enabled.</string>
     <string name="preference_search_result_ordering_weight_factor">Ranking flexibility</string>
     <string name="preference_search_result_ordering_weight_factor_low">Stable</string>
     <string name="preference_search_result_ordering_weight_factor_default">Balanced</string>

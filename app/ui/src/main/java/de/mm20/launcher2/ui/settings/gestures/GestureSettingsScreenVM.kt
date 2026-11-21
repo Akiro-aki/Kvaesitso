@@ -51,6 +51,12 @@ internal class GestureSettingsScreenVM : ViewModel(), KoinComponent {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     val homeButton = gestureSettings.homeButton
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    val edgeAppSwitch = gestureSettings.edgeAppSwitch
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    fun setEdgeAppSwitch(enabled: Boolean) {
+        gestureSettings.setEdgeAppSwitch(enabled)
+    }
 
     fun setSwipeDown(action: GestureAction, searchable: SavableSearchable?) {
         saveShortcut(searchable)

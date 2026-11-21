@@ -42,6 +42,7 @@ import de.mm20.launcher2.ui.component.preferences.GuardedPreference
 import de.mm20.launcher2.ui.component.preferences.ListPreference
 import de.mm20.launcher2.ui.component.preferences.PreferenceCategory
 import de.mm20.launcher2.ui.component.preferences.PreferenceScreen
+import de.mm20.launcher2.ui.component.preferences.SwitchPreference
 import de.mm20.launcher2.ui.ktx.toPixels
 import kotlinx.serialization.Serializable
 
@@ -194,6 +195,25 @@ fun GestureSettingsScreen() {
                         options = options,
                         shortcutOptions = shortcutOptions,
                         widgetOptions = widgetOptions,
+                    )
+                }
+            }
+        }
+        item {
+            PreferenceCategory(title = stringResource(R.string.preference_category_navigation_gestures)) {
+                val edgeAppSwitch by viewModel.edgeAppSwitch.collectAsStateWithLifecycle(null)
+                GuardedPreference(
+                    locked = hasPermission == false,
+                    description = stringResource(R.string.missing_permission_accessibility_edge_app_switch),
+                    onUnlock = { viewModel.requestPermission(context as AppCompatActivity) },
+                ) {
+                    SwitchPreference(
+                        title = stringResource(R.string.preference_gesture_edge_app_switch),
+                        summary = stringResource(R.string.preference_gesture_edge_app_switch_summary),
+                        icon = R.drawable.swipe_right_alt_24px,
+                        value = edgeAppSwitch == true,
+                        onValueChanged = viewModel::setEdgeAppSwitch,
+                        enabled = hasPermission == true,
                     )
                 }
             }

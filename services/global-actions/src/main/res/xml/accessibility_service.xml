@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- canPerformGestures: forwards taps on the bottom edge app switching overlay to the app below
+     it. Event types are set at runtime, only while that feature is enabled. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes=""
+    android:canPerformGestures="true"
     android:canRetrieveWindowContent="false"
     android:isAccessibilityTool="false" />

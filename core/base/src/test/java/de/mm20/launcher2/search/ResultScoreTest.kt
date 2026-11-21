@@ -89,6 +89,34 @@ class ResultScoreTest {
     }
 
     @Test
+    fun matchesWordsInAnyOrder() {
+        Assert.assertTrue(matches("music yt", "yt music"))
+        Assert.assertTrue(matches("store play", "play store"))
+    }
+
+    @Test
+    fun inOrderWordsOutrankReorderedWords() {
+        Assert.assertTrue(score("yt music", "yt music") > score("music yt", "yt music"))
+    }
+
+    @Test
+    fun toleratesTyposInPartialQueries() {
+        // A typo in one word of a longer label
+        Assert.assertTrue(matches("yuotube", "youtube music"))
+        // A typo in the first few characters of a label that is not fully typed yet
+        Assert.assertTrue(matches("clac", "calculator"))
+    }
+
+    @Test
+    fun partialTypoMatchesNeedCloseSimilarity() {
+        Assert.assertFalse(matches("phone", "photos"))
+        // Shares a prefix with "calendar", but is a different word being typed
+        Assert.assertFalse(matches("calc", "calendar"))
+        // Longer than any word of the label
+        Assert.assertFalse(matches("music zz", "yt music"))
+    }
+
+    @Test
     fun noFieldsIsNotAMatch() {
         Assert.assertEquals(ResultScore.Zero, ResultScore.from("chrome"))
     }
