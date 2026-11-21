@@ -230,6 +230,16 @@ fun HomescreenSettingsScreen() {
                     },
                     enabled = scrollWallpaper == true,
                 )
+                val wallpaperSideScrollMomentum by viewModel.wallpaperSideScrollMomentum.collectAsStateWithLifecycle()
+                SwitchPreference(
+                    title = stringResource(R.string.preference_wallpaper_side_scroll_momentum),
+                    summary = stringResource(R.string.preference_wallpaper_side_scroll_momentum_summary),
+                    value = wallpaperSideScrollMomentum,
+                    onValueChanged = {
+                        viewModel.setWallpaperSideScrollMomentum(it)
+                    },
+                    enabled = scrollWallpaper == true && wallpaperSideScroll == WallpaperSideScroll.Pan,
+                )
                 val isBlurSupported = remember { viewModel.isBlurAvailable(context) }
                 SwitchPreference(
                     title = stringResource(R.string.preference_blur_wallpaper),

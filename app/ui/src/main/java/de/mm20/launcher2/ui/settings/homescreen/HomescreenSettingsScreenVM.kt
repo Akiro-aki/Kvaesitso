@@ -77,6 +77,13 @@ class HomescreenSettingsScreenVM(
         uiSettings.setWallpaperSideScroll(sideScroll)
     }
 
+    val wallpaperSideScrollMomentum = uiSettings.wallpaperSideScrollMomentum
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), true)
+
+    fun setWallpaperSideScrollMomentum(momentum: Boolean) {
+        uiSettings.setWallpaperSideScrollMomentum(momentum)
+    }
+
     /**
      * Whether the launcher may read the wallpaper, which it needs to scroll a static wallpaper.
      */

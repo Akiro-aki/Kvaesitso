@@ -550,6 +550,8 @@
     <string name="wallpaper_side_scroll_pages_only">Only when a page opens</string>
     <string name="wallpaper_side_scroll_pan">Pan and stay</string>
     <string name="wallpaper_side_scroll_spring_back">Follow and spring back</string>
+    <string name="preference_wallpaper_side_scroll_momentum">Keep sliding</string>
+    <string name="preference_wallpaper_side_scroll_momentum_summary">After a quick sideways swipe, the wallpaper keeps sliding for a moment and slows down</string>
     <string name="preference_blur_wallpaper_unsupported">Not supported on this device</string>
     <string name="preference_blur_wallpaper_radius">Blur radius</string>
     <string name="preference_wallpaper_summary">Choose a wallpaper</string>

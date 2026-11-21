@@ -160,6 +160,17 @@ class UiSettings internal constructor(
         }
     }
 
+    val wallpaperSideScrollMomentum
+        get() = launcherDataStore.data.map {
+            it.wallpaperSideScrollMomentum
+        }.distinctUntilChanged()
+
+    fun setWallpaperSideScrollMomentum(momentum: Boolean) {
+        launcherDataStore.update {
+            it.copy(wallpaperSideScrollMomentum = momentum)
+        }
+    }
+
     val colorScheme
         get() = launcherDataStore.data.map {
             it.uiColorScheme

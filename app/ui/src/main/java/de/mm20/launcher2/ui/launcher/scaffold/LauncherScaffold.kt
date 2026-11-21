@@ -13,6 +13,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -202,6 +203,10 @@ internal data class ScaffoldConfiguration(
      */
     val wallpaperSideScroll: WallpaperSideScroll = WallpaperSideScroll.PagesOnly,
     /**
+     * With [WallpaperSideScroll.Pan], the wallpaper keeps sliding after a flick.
+     */
+    val wallpaperSideScrollMomentum: Boolean = true,
+    /**
      * Show the navigation bar
      */
     val showNavBar: Boolean = true,
@@ -255,6 +260,17 @@ private operator fun ScaffoldConfiguration.get(gesture: Gesture): ScaffoldGestur
         Gesture.TapSearchBar -> searchBarTap
     }
 }
+
+/**
+ * Part of the wallpaper's scroll range that a sideways drag across the full width of the screen
+ * covers.
+ */
+private const val WallpaperPanPerScreen = 1f
+
+/**
+ * Friction of the wallpaper's slide after a sideways flick: higher stops sooner.
+ */
+private const val WallpaperPanFriction = 1.5f
 
 enum class Gesture(val orientation: Orientation?) {
     SwipeUp(Orientation.Vertical),
@@ -548,7 +564,7 @@ internal class LauncherScaffoldState(
 
     /**
      * Pans the wallpaper for a sideways drag without an action. A drag across the full width of
-     * the screen moves it by half its scroll range, like moving by one of three home pages.
+     * the screen moves it across its whole scroll range.
      */
     private fun onFreeDrag(offset: Offset) {
         if (!config.scrollWallpaper || config.wallpaperSideScroll == WallpaperSideScroll.PagesOnly) return
@@ -558,21 +574,38 @@ internal class LauncherScaffoldState(
             freeDragSideways = freeDragTotal.x.absoluteValue > freeDragTotal.y.absoluteValue
         }
         if (freeDragSideways != true || size.width <= 0f) return
-        wallpaperPan = (wallpaperPan - offset.x / size.width * 0.5f).coerceIn(0f, 1f)
+        wallpaperPan = (wallpaperPan - offset.x / size.width * WallpaperPanPerScreen).coerceIn(0f, 1f)
     }
 
     /**
-     * Ends a sideways drag without an action: the wallpaper stays where it is, or slides back to
-     * the center for [WallpaperSideScroll.SpringBack].
+     * Ends a sideways drag without an action: the wallpaper slides back to the center for
+     * [WallpaperSideScroll.SpringBack], otherwise it stays where it is, or keeps sliding with the
+     * flick and slows down if [ScaffoldConfiguration.wallpaperSideScrollMomentum].
+     *
+     * @param velocityX horizontal velocity of the finger at the end of the drag, in px/s
      */
-    private suspend fun onFreeDragStopped() {
+    private suspend fun onFreeDragStopped(velocityX: Float) {
         val wasSideways = freeDragSideways == true
         freeDragSideways = null
         freeDragTotal = Offset.Zero
-        if (wasSideways && config.wallpaperSideScroll == WallpaperSideScroll.SpringBack) {
-            wallpaperPanAnimatable.snapTo(wallpaperPan)
-            wallpaperPanAnimatable.animateTo(0.5f, spring()) {
-                wallpaperPan = value
+        if (!wasSideways) return
+        when {
+            config.wallpaperSideScroll == WallpaperSideScroll.SpringBack -> {
+                wallpaperPanAnimatable.snapTo(wallpaperPan)
+                wallpaperPanAnimatable.animateTo(0.5f, spring()) {
+                    wallpaperPan = value
+                }
+            }
+
+            config.wallpaperSideScrollMomentum && size.width > 0f -> {
+                wallpaperPanAnimatable.snapTo(wallpaperPan)
+                wallpaperPanAnimatable.updateBounds(0f, 1f)
+                wallpaperPanAnimatable.animateDecay(
+                    initialVelocity = -velocityX / size.width * WallpaperPanPerScreen,
+                    animationSpec = exponentialDecay(frictionMultiplier = WallpaperPanFriction),
+                ) {
+                    wallpaperPan = value
+                }
             }
         }
     }
@@ -690,7 +723,7 @@ internal class LauncherScaffoldState(
         }
         if (currentGesture == null) {
             currentOffset3D = Offset3D.Zero
-            onFreeDragStopped()
+            onFreeDragStopped(velocity.x)
             return
         }
         freeDragSideways = null

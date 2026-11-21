@@ -33,6 +33,10 @@ data class LauncherSettingsData internal constructor(
     val wallpaperBlurRadius: Int = 32,
     val wallpaperScroll: Boolean = false,
     val wallpaperSideScroll: WallpaperSideScroll = WallpaperSideScroll.PagesOnly,
+    /**
+     * With [WallpaperSideScroll.Pan], the wallpaper keeps sliding after a flick.
+     */
+    val wallpaperSideScrollMomentum: Boolean = true,
 
     val mediaAllowList: Set<String> = emptySet(),
     val mediaDenyList: Set<String> = emptySet(),

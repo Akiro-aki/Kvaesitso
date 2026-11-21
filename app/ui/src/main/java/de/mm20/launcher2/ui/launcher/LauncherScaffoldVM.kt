@@ -80,6 +80,8 @@ class LauncherScaffoldVM : ViewModel(), KoinComponent {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
     val wallpaperSideScroll = uiSettings.wallpaperSideScroll
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), WallpaperSideScroll.PagesOnly)
+    val wallpaperSideScrollMomentum = uiSettings.wallpaperSideScrollMomentum
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), true)
 
 
     val fillClockHeight = uiSettings.clockFillScreen
